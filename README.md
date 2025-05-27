@@ -19,6 +19,7 @@ https://github.com/Mbed-TLS/mbedtls
 ### cpp-httplib
 https://github.com/yhirose/cpp-httplib
 
-
+### cpp-httplib-mbedtls
+https://github.com/crystalidea/cpp-httplib-mbedtls/blob/main/httplib.h
 
 
