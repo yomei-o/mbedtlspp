@@ -13,9 +13,12 @@ g++ mbedtlspp_sample.cpp -I . -I include --std=c++17
 
 ## Link lists
 
-[foo]: http://example.com/  "Optional Title Here"
-[foo]: http://example.com/  'Optional Title Here'
-[foo]: http://example.com/  (Optional Title Here)
+### mbedtls
+https://github.com/Mbed-TLS/mbedtls
+
+### cpp-httplib
+https://github.com/yhirose/cpp-httplib
+
 
 
 
