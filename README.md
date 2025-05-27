@@ -13,7 +13,9 @@ g++ mbedtlspp_sample.cpp -I . -I include --std=c++17
 
 ## Link lists
 
-[google]: http://google.com/ "Google"
+[foo]: http://example.com/  "Optional Title Here"
+[foo]: http://example.com/  'Optional Title Here'
+[foo]: http://example.com/  (Optional Title Here)
 
 
 
