@@ -1,6 +1,6 @@
 # mbedtlspp
 
-The mbedtlspp is a header only c++ SSL bibrary based on mbedtls and work with cpp-httplib.
+The mbedtlspp is a header only c++ SSL library based on mbedtls and work with cpp-httplib.
 
 ## build
 
