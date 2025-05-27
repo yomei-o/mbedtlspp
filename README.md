@@ -1,1 +1,15 @@
 # mbedtlspp
+
+The mbedtlspp is a header only c++ SSL bibrary based on mbedtls and work with cpp-httplib.
+
+## build
+
+### Windows mingw32
+
+g++ mbedtlspp_sample.cpp -I . -I include -lws2_32 -lcrypt32 -l bcrypt
+
+### Mac Linux
+g++ mbedtlspp_sample.cpp -I . -I include --std=c++17
+
+
+
