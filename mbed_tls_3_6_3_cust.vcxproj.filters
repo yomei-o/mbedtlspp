@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="ソース_main">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="mbedtlspp_sample.cpp">
+      <Filter>ソース_main</Filter>
+    </ClCompile>
+    <ClCompile Include="mbedtlspp_check.cpp">
+      <Filter>ソース_main</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="mbedtlspp.hpp">
+      <Filter>ソース_main</Filter>
+    </ClInclude>
+    <ClInclude Include="openssl\mbedtls.h" />
+  </ItemGroup>
+</Project>
