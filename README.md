@@ -1,7 +1,9 @@
 # mbedtlspp
 
 The mbedtlspp is a header only c++ SSL library based on mbedtls and work with cpp-httplib.
+
 In order to use it, define CPPHTTPLIB_OPENSSL_SUPPORT and add the openssl folder to includes. 
+
 Tested with cpp-httplib v0.20.0 and mbtdtls 3.6.3, should work with later versions.
 
 ## build
