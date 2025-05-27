@@ -4,6 +4,10 @@ The mbedtlspp is a header only c++ SSL library based on mbedtls and work with cp
 
 ## build
 
+### Windows Visual Studio 2022
+
+cl mbedtlspp_sample.cpp /I . /I include /std:c++20
+
 ### Windows mingw32
 
 g++ mbedtlspp_sample.cpp -I . -I include -lws2_32 -lcrypt32 -l bcrypt
