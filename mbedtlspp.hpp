@@ -8,6 +8,8 @@
 #define WIN32_LEAN_AND_MEAN 1
 #define NOMINMAX 1
 
+#include "threading.cpp"
+
 #include "platform.cpp"
 #include "psa_util.cpp"
 #include "x509_crt.cpp"
@@ -107,7 +109,6 @@
 #include "ssl_tls13_generic.cpp"
 #include "ssl_tls13_client.cpp"
 #include "ssl_tls13_server.cpp"
-#include "threading.cpp"
 #include "timing.cpp"
 #include "version.cpp"
 #include "version_features.cpp"
