@@ -126,8 +126,8 @@ static inline  void threading_mutex_dummy(mbedtls_threading_mutex_t *mutex)
 
 static inline void (*mbedtls_mutex_init)(mbedtls_threading_mutex_t *) = threading_mutex_dummy;
 static inline void (*mbedtls_mutex_free)(mbedtls_threading_mutex_t *) = threading_mutex_dummy;
-static inline int (*mbedtls_mutex_lock)(mbedtls_threading_mutex_t *) = threading_mutex_fail;
-static inline int (*mbedtls_mutex_unlock)(mbedtls_threading_mutex_t *) = threading_mutex_fail;
+static inline int (*mbedtls_mutex_lock)(mbedtls_threading_mutex_t *) = threading_mutex_lock;
+static inline int (*mbedtls_mutex_unlock)(mbedtls_threading_mutex_t *) = threading_mutex_unlock;
 
 /*
  * Set functions pointers and initialize global mutexes
@@ -180,6 +180,8 @@ static inline void mbedtls_threading_free_alt(void)
 #ifndef MUTEX_INIT
 #define MUTEX_INIT
 #endif
+
+#if 0
 #if defined(MBEDTLS_FS_IO)
 static inline mbedtls_threading_mutex_t mbedtls_threading_readdir_mutex MUTEX_INIT;
 #endif
@@ -190,6 +192,7 @@ static inline mbedtls_threading_mutex_t mbedtls_threading_gmtime_mutex MUTEX_INI
 static inline mbedtls_threading_mutex_t mbedtls_threading_key_slot_mutex MUTEX_INIT;
 static inline mbedtls_threading_mutex_t mbedtls_threading_psa_globaldata_mutex MUTEX_INIT;
 static inline mbedtls_threading_mutex_t mbedtls_threading_psa_rngdata_mutex MUTEX_INIT;
+#endif
 #endif
 
 #endif /* MBEDTLS_THREADING_C */
