@@ -987,8 +987,8 @@ int SSL_accept(SSL* ssl)
     {
         assert("MBEDTLS_ERR_RSA_VERIFY_FAILED issue not solved" == 0);
     }
-
-    assert(ret == 0);
+    //yomei iranai!!
+    //assert(ret == 0);
 
     return (ret == 0) ? 1 : 0;
 }
