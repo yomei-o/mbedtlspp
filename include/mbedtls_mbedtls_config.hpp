@@ -3735,7 +3735,9 @@
  *
  * Enable this layer to allow use of mutexes within Mbed TLS
  */
-//#define MBEDTLS_THREADING_C
+#define MBEDTLS_THREADING_C
+//#define MBEDTLS_THREADING_IMPL
+#define MBEDTLS_THREADING_ALT
 
 /**
  * \def MBEDTLS_TIMING_C

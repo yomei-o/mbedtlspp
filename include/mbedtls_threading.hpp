@@ -78,10 +78,10 @@ static inline void mbedtls_threading_free_alt(void);
  *
  * All these functions are expected to work or the result will be undefined.
  */
-static inline  void (*mbedtls_mutex_init)(mbedtls_threading_mutex_t *mutex);
-static inline  void (*mbedtls_mutex_free)(mbedtls_threading_mutex_t *mutex);
-static inline  int (*mbedtls_mutex_lock)(mbedtls_threading_mutex_t *mutex);
-static inline  int (*mbedtls_mutex_unlock)(mbedtls_threading_mutex_t *mutex);
+//static inline  void (*mbedtls_mutex_init)(mbedtls_threading_mutex_t *mutex);
+//static inline  void (*mbedtls_mutex_free)(mbedtls_threading_mutex_t *mutex);
+//static inline  int (*mbedtls_mutex_lock)(mbedtls_threading_mutex_t *mutex);
+//static inline  int (*mbedtls_mutex_unlock)(mbedtls_threading_mutex_t *mutex);
 
 /*
  * Global mutexes
