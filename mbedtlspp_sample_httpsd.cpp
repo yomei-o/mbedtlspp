@@ -5,8 +5,6 @@
 
 int main()
 {
-    mbedtls_debug_set_threshold(2);
-
 
     // HTTPS
     httplib::SSLServer svr("cert.pem", "key.pem");
