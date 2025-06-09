@@ -123,6 +123,9 @@
 #undef write
 #undef read
 #undef close
+#undef open
+#undef R
+
 
 #endif
 
