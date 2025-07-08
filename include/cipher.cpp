@@ -837,8 +837,8 @@ static inline  void add_pkcs_padding(unsigned char *output, size_t output_len,
         output[data_len + i] = (unsigned char) padding_len;
     }
 }
-
-static inline  int get_pkcs_padding(unsigned char *input, size_t input_len,
+MBEDTLS_STATIC_TESTABLE
+static inline  int mbedtls_get_pkcs_padding(unsigned char *input, size_t input_len,
                             size_t *data_len)
 {
     size_t i, pad_idx;
@@ -1144,7 +1144,7 @@ static inline int mbedtls_cipher_set_padding_mode(mbedtls_cipher_context_t *ctx,
 #if defined(MBEDTLS_CIPHER_PADDING_PKCS7)
         case MBEDTLS_PADDING_PKCS7:
             ctx->add_padding = add_pkcs_padding;
-            ctx->get_padding = get_pkcs_padding;
+            ctx->get_padding = mbedtls_get_pkcs_padding;
             break;
 #endif
 #if defined(MBEDTLS_CIPHER_PADDING_ONE_AND_ZEROS)

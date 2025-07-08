@@ -849,7 +849,7 @@ static inline int mbedtls_pk_verify_ext(mbedtls_pk_type_t type, const void *opti
 static inline int mbedtls_pk_sign(mbedtls_pk_context *ctx, mbedtls_md_type_t md_alg,
                     const unsigned char *hash, size_t hash_len,
                     unsigned char *sig, size_t sig_size, size_t *sig_len,
-                    int (*f_rng)(void *, unsigned char *, size_t), void *p_rng);
+                    mbedtls_f_rng_t *f_rng, void *p_rng);
 
 /**
  * \brief           Make signature given a signature type.

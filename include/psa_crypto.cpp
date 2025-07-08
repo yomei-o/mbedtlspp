@@ -5599,6 +5599,17 @@ static inline psa_status_t psa_aead_abort(psa_aead_operation_t *operation)
 #if defined(BUILTIN_ALG_ANY_HKDF) || \
     defined(MBEDTLS_PSA_BUILTIN_ALG_TLS12_PRF) || \
     defined(MBEDTLS_PSA_BUILTIN_ALG_TLS12_PSK_TO_MS)
+
+/** Internal helper to set up an HMAC operation with a key passed directly.
+ *
+ * \param[in,out] operation     A MAC operation object. It does not need to
+ *                              be initialized.
+ * \param hash_alg              The hash algorithm used for HMAC.
+ * \param hmac_key              The HMAC key.
+ * \param hmac_key_length       Length of \p hmac_key in bytes.
+ *
+ * \return A PSA status code.
+ */
 static inline  psa_status_t psa_key_derivation_start_hmac(
     psa_mac_operation_t *operation,
     psa_algorithm_t hash_alg,

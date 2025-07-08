@@ -465,7 +465,7 @@ static inline size_t mbedtls_rsa_get_len(const mbedtls_rsa_context *ctx);
  * \return         An \c MBEDTLS_ERR_RSA_XXX error code on failure.
  */
 static inline int mbedtls_rsa_gen_key(mbedtls_rsa_context *ctx,
-                        int (*f_rng)(void *, unsigned char *, size_t),
+                        mbedtls_f_rng_t *f_rng,
                         void *p_rng,
                         unsigned int nbits, int exponent);
 

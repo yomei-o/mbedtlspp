@@ -169,7 +169,7 @@ typedef struct {
 
 //static inline  int mbedtls_cipher_supported[];
 
-//static inline  const mbedtls_cipher_base_t *mbedtls_cipher_base_lookup_table[];
+//static inline  const mbedtls_cipher_base_t * const mbedtls_cipher_base_lookup_table[];
 
 // #ifdef __cplusplus
 // }

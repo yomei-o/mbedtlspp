@@ -2425,7 +2425,7 @@ static inline const mbedtls_cipher_definition_t mbedtls_cipher_definitions[] =
                      sizeof(mbedtls_cipher_definitions[0]))
 static inline int mbedtls_cipher_supported[NUM_CIPHERS];
 
-static inline const mbedtls_cipher_base_t *mbedtls_cipher_base_lookup_table[] = {
+static inline const mbedtls_cipher_base_t * const mbedtls_cipher_base_lookup_table[] = {
 #if defined(MBEDTLS_AES_C)
     /*[MBEDTLS_CIPHER_BASE_INDEX_AES] = */ &aes_info,
 #endif

@@ -59,6 +59,18 @@
  * of integral types defined in "crypto_types.h". */
 #include "psa_crypto_values.hpp"
 
+/* The file "crypto_sizes.h" contains definitions for size calculation
+ * macros whose definitions are implementation-specific. */
+#include "psa_crypto_sizes.hpp"
+
+/* The file "crypto_struct.h" contains definitions for
+ * implementation-specific structs that are declared above. */
+#if defined(MBEDTLS_PSA_CRYPTO_STRUCT_FILE)
+#include MBEDTLS_PSA_CRYPTO_STRUCT_FILE
+#else
+#include "psa_crypto_struct.hpp"
+#endif
+
 /** \defgroup initialization Library initialization
  * @{
  */

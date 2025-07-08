@@ -364,7 +364,7 @@ static inline void mbedtls_lms_private_free(mbedtls_lms_private_t *ctx);
 static inline int mbedtls_lms_generate_private_key(mbedtls_lms_private_t *ctx,
                                      mbedtls_lms_algorithm_type_t type,
                                      mbedtls_lmots_algorithm_type_t otstype,
-                                     int (*f_rng)(void *, unsigned char *, size_t),
+                                     mbedtls_f_rng_t *f_rng,
                                      void *p_rng, const unsigned char *seed,
                                      size_t seed_size);
 

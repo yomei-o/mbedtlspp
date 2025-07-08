@@ -12,6 +12,7 @@
 #include "mbedtls_private_access.hpp"
 
 #include "mbedtls_build_info.hpp"
+#include "mbedtls_platform_util.hpp"
 
 #include <stddef.h>
 #include <stdint.h>

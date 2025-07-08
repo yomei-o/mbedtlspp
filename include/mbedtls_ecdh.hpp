@@ -189,7 +189,7 @@ static inline int mbedtls_ecdh_can_do(mbedtls_ecp_group_id gid);
  *                  \c MBEDTLS_MPI_XXX error code on failure.
  */
 static inline int mbedtls_ecdh_gen_public(mbedtls_ecp_group *grp, mbedtls_mpi *d, mbedtls_ecp_point *Q,
-                            int (*f_rng)(void *, unsigned char *, size_t),
+                            mbedtls_f_rng_t *f_rng,
                             void *p_rng);
 
 /**

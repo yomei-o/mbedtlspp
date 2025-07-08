@@ -966,7 +966,7 @@ static inline int mbedtls_ecp_tls_write_group(const mbedtls_ecp_group *grp,
  */
 static inline int mbedtls_ecp_mul(mbedtls_ecp_group *grp, mbedtls_ecp_point *R,
                     const mbedtls_mpi *m, const mbedtls_ecp_point *P,
-                    int (*f_rng)(void *, unsigned char *, size_t), void *p_rng);
+                    mbedtls_f_rng_t *f_rng, void *p_rng);
 
 /**
  * \brief           This function performs multiplication of a point by

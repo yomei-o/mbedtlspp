@@ -729,6 +729,14 @@ union mbedtls_ssl_premaster_secret {
 /* Length in number of bytes of the TLS sequence number */
 #define MBEDTLS_SSL_SEQUENCE_NUMBER_LEN 8
 
+/* Helper to state that client_random and server_random need to be stored
+ * after the handshake is complete. This is required for context serialization
+ * and for the keying material exporter in TLS 1.2. */
+#if defined(MBEDTLS_SSL_CONTEXT_SERIALIZATION) || \
+    (defined(MBEDTLS_SSL_KEYING_MATERIAL_EXPORT) && defined(MBEDTLS_SSL_PROTO_TLS1_2))
+#define MBEDTLS_SSL_KEEP_RANDBYTES
+#endif
+
 // #ifdef __cplusplus
 // extern "C" {
 // #endif
