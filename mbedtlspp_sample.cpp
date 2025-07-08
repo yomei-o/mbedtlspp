@@ -3,6 +3,8 @@
 #include <iostream>
 #include "httplib.h"
 
+#if 0
+
 int main()
 {
 
@@ -14,4 +16,25 @@ int main()
     return 0;
 
 }
+
+#endif
+
+
+#if 1
+
+int main()
+{
+    // Server
+    httplib::SSLServer svr("cert.pem", "key.pem");
+
+    svr.Get("/hi", [](const httplib::Request&, httplib::Response& res) {
+        res.set_content("Hello World!", "text/plain");
+        });
+
+    svr.listen("0.0.0.0", 8080);
+    return 0;
+
+}
+
+#endif
 
