@@ -584,11 +584,6 @@ static inline int mbedtls_x509_crl_parse_file(mbedtls_x509_crl *chain, const cha
 
 #if !defined(MBEDTLS_X509_REMOVE_INFO)
 /*
- * Return an informational string about the certificate.
- */
-#define BEFORE_COLON    14
-#define BC              "14"
-/*
  * Return an informational string about the CRL.
  */
 static inline int mbedtls_x509_crl_info(char *buf, size_t size, const char *prefix,

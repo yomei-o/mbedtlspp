@@ -227,25 +227,34 @@ static inline  int x509_csr_parse_attributes(mbedtls_x509_csr *csr,
 
         /* Check that this is an extension-request attribute */
         if (MBEDTLS_OID_CMP(MBEDTLS_OID_PKCS9_CSR_EXT_REQ, &attr_oid) == 0) {
-            if ((ret = mbedtls_asn1_get_tag(p, end, &len,
+            if ((ret = mbedtls_asn1_get_tag(p, end_attr_data, &len,
                                             MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SET)) != 0) {
                 return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, ret);
             }
 
-            if ((ret = mbedtls_asn1_get_tag(p, end, &len,
+            const unsigned char *end_set = *p + len;
+            if (end_set != end_attr_data) {
+                return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
+                                         MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
+            }
+
+            if ((ret = mbedtls_asn1_get_tag(p, end_set, &len,
                                             MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) !=
                 0) {
                 return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, ret);
             }
 
-            if ((ret = x509_csr_parse_extensions(csr, p, *p + len, cb, p_ctx)) != 0) {
-                return ret;
-            }
-
-            if (*p != end_attr_data) {
+            const unsigned char *end_exts = *p + len;
+            if (end_exts != end_set) {
                 return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
                                          MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
             }
+
+            if ((ret = x509_csr_parse_extensions(csr, p, end_exts, cb, p_ctx)) != 0) {
+                return ret;
+            }
+            /* x509_csr_parse_extensions() guarantees *p == end_exts
+             * on success */
         }
 
         *p = end_attr_data;
@@ -520,12 +529,10 @@ static inline int mbedtls_x509_csr_parse_file(mbedtls_x509_csr *csr, const char 
 #endif /* MBEDTLS_FS_IO */
 
 #if !defined(MBEDTLS_X509_REMOVE_INFO)
-
-#undef BEFORE_COLON
-#define BEFORE_COLON    14
-
-#undef BC
-#define BC              "14"
+#undef MBEDTLS_BEFORE_COLON
+#define MBEDTLS_BEFORE_COLON       14
+#undef MBEDTLS_BEFORE_COLON_STR
+#define MBEDTLS_BEFORE_COLON_STR   "14"
 /*
  * Return an informational string about the CSR.
  */
@@ -535,7 +542,7 @@ static inline int mbedtls_x509_csr_info(char *buf, size_t size, const char *pref
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t n;
     char *p;
-    char key_size_str[BEFORE_COLON];
+    char key_size_str[MBEDTLS_BEFORE_COLON];
 
     p = buf;
     n = size;
@@ -556,13 +563,13 @@ static inline int mbedtls_x509_csr_info(char *buf, size_t size, const char *pref
                                     csr->sig_opts);
     MBEDTLS_X509_SAFE_SNPRINTF;
 
-    if ((ret = mbedtls_x509_key_size_helper(key_size_str, BEFORE_COLON,
+    if ((ret = mbedtls_x509_key_size_helper(key_size_str, MBEDTLS_BEFORE_COLON,
                                             mbedtls_pk_get_name(&csr->pk))) != 0) {
         return ret;
     }
 
-    ret = mbedtls_snprintf(p, n, "\n%s%-" BC "s: %d bits\n", prefix, key_size_str,
-                           (int) mbedtls_pk_get_bitlen(&csr->pk));
+    ret = mbedtls_snprintf(p, n, "\n%s%-" MBEDTLS_BEFORE_COLON_STR "s: %d bits\n",
+                           prefix, key_size_str, (int) mbedtls_pk_get_bitlen(&csr->pk));
     MBEDTLS_X509_SAFE_SNPRINTF;
 
     /*
