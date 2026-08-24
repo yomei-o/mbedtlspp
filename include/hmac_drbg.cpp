@@ -587,7 +587,7 @@ static inline int mbedtls_hmac_drbg_self_test(int verbose)
     mbedtls_hmac_drbg_set_prediction_resistance(&ctx, MBEDTLS_HMAC_DRBG_PR_ON);
     CHK(mbedtls_hmac_drbg_random(&ctx, buf, OUTPUT_LEN));
     CHK(mbedtls_hmac_drbg_random(&ctx, buf, OUTPUT_LEN));
-    CHK(memcmp(buf, result_pr, OUTPUT_LEN));
+    CHK(memcmp(buf, result_pr_2, OUTPUT_LEN));
     mbedtls_hmac_drbg_free(&ctx);
 
     mbedtls_hmac_drbg_free(&ctx);

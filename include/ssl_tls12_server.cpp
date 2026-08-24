@@ -2566,7 +2566,7 @@ static inline  int ssl_write_certificate_request(mbedtls_ssl_context *ssl)
     defined(MBEDTLS_KEY_EXCHANGE_ECDH_ECDSA_ENABLED))
 #if defined(MBEDTLS_USE_PSA_CRYPTO)
 MBEDTLS_CHECK_RETURN_CRITICAL
-static inline  int ssl_get_ecdh_params_from_cert(mbedtls_ssl_context *ssl)
+static inline  int ssl_get_ecdh_params_from_cert_2(mbedtls_ssl_context *ssl)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
