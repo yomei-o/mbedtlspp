@@ -2,9 +2,40 @@
 
 The mbedtlspp is a header only c++ SSL library based on mbedtls and works with cpp-httplib.
 
-In order to use it, define CPPHTTPLIB_OPENSSL_SUPPORT and add the openssl folder to includes. 
+Tested with cpp-httplib v0.53.1 and mbedtls 3.6.4, should work with later versions.
 
-Tested with cpp-httplib v0.20.0 and mbtdtls 3.6.3, should work with later versions.
+## usage
+
+There are two ways to combine it with cpp-httplib. Both are supported and both
+are exercised by the samples in this repository.
+
+### 1. native mbedTLS support (cpp-httplib 0.48 or later)
+
+cpp-httplib can talk to mbedtls directly. Define `CPPHTTPLIB_MBEDTLS_SUPPORT`
+and add the repository root to the includes; the `mbedtls/` and `psa/`
+forwarding headers point cpp-httplib's `<mbedtls/...>` / `<psa/...>` includes at
+the header only amalgamation. The `openssl/` bridge is not used at all.
+
+```
+#define CPPHTTPLIB_MBEDTLS_SUPPORT 1
+#include "httplib.h"
+```
+
+See `mbedtlspp_sample_mbedtls.cpp`.
+
+### 2. OpenSSL compatibility bridge (any cpp-httplib version)
+
+Define `CPPHTTPLIB_OPENSSL_SUPPORT` and add the `openssl` folder to the
+includes. `openssl/mbedtls.h` implements the OpenSSL API surface that
+cpp-httplib uses on top of mbedtls. This is the only option for cpp-httplib
+0.47 or earlier, and it keeps working with the current release.
+
+```
+#define CPPHTTPLIB_OPENSSL_SUPPORT 1
+#include "httplib.h"
+```
+
+See `mbedtlspp_sample.cpp` and `mbedtlspp_sample_httpsd.cpp`.
 
 ## build
 
@@ -32,4 +63,3 @@ https://github.com/yhirose/cpp-httplib
 
 ### cpp-httplib-mbedtls
 https://github.com/crystalidea/cpp-httplib-mbedtls/blob/main/httplib.h
-

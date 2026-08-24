@@ -248,6 +248,8 @@ struct X509_INFO {
     X509_CRL* crl;
 };
 
+struct X509_NAME_ENTRY;
+
 struct X509_NAME_OPENSSL // originally X509_NAME bug there's a name conflict on Windows
 {
     X509_NAME_OPENSSL(const char* sz)
@@ -255,8 +257,12 @@ struct X509_NAME_OPENSSL // originally X509_NAME bug there's a name conflict on 
     {
 
     }
+    ~X509_NAME_OPENSSL();
 
     std::string str;
+
+    // RDN entries parsed out of `str` on demand; see X509_NAME_get_index_by_NID().
+    std::vector<X509_NAME_ENTRY*> entries;
 };
 
 // httplib 0.46 refers to the type as X509_NAME directly. wincrypt.h defines
@@ -1554,6 +1560,118 @@ inline int X509_check_ip_asc(X509* x, const char* ipasc, unsigned int /*flags*/)
         }
     }
     return 0;
+}
+
+
+// =====================================================================
+//  httplib 0.53 compatibility shims.
+//  Also additive: nothing here is referenced by httplib 0.20 / 0.46.
+// =====================================================================
+
+// ---- X509_STORE object snapshot ------------------------------------
+// OpenSSL 3.3+ deprecated X509_STORE_get0_objects() in favour of the
+// snapshot-taking X509_STORE_get1_objects(); OPENSSL_VERSION_NUMBER above
+// puts httplib on that path. The bridge has no store enumeration, so both
+// variants report an empty list and httplib bails out on the null check.
+inline X509_OBJECT* X509_STORE_get1_objects(X509_STORE*) { return nullptr; }
+inline void X509_OBJECT_free(X509_OBJECT*) {}
+typedef void (*sk_X509_OBJECT_freefunc)(X509_OBJECT*);
+inline void sk_X509_OBJECT_pop_free(X509_OBJECT*, sk_X509_OBJECT_freefunc) {}
+
+// ---- X509_NAME entry enumeration -----------------------------------
+// httplib 0.53 reads the subject CN through the index / entry / data
+// triplet rather than the deprecated X509_NAME_get_text_by_NID(). mbedTLS
+// only hands us the flattened DN produced by mbedtls_x509_dn_gets(), so
+// parse that back into entries. Each value is kept in a GENERAL_NAME so the
+// existing ASN1_STRING_get0_data() / ASN1_STRING_length() accessors apply.
+
+// NID values as in OpenSSL, except commonName which the bridge already
+// defines as 1 above.
+#define NID_countryName            14
+#define NID_localityName           15
+#define NID_stateOrProvinceName    16
+#define NID_organizationName       17
+#define NID_organizationalUnitName 18
+#define NID_pkcs9_emailAddress     48
+#define NID_serialNumber           105
+
+struct X509_NAME_ENTRY {
+    X509_NAME_ENTRY(int n, const std::vector<unsigned char>& v)
+        : nid(n), value(0, v)
+    {
+    }
+
+    int nid;
+    GENERAL_NAME value;
+};
+
+inline X509_NAME_OPENSSL::~X509_NAME_OPENSSL()
+{
+    for (size_t i = 0; i < entries.size(); i++) delete entries[i];
+}
+
+inline int bridge_nid_from_dn_attr_(const std::string& a) {
+    if (a == "CN") return NID_commonName;
+    if (a == "C") return NID_countryName;
+    if (a == "L") return NID_localityName;
+    if (a == "ST") return NID_stateOrProvinceName;
+    if (a == "O") return NID_organizationName;
+    if (a == "OU") return NID_organizationalUnitName;
+    if (a == "emailAddress") return NID_pkcs9_emailAddress;
+    if (a == "serialNumber") return NID_serialNumber;
+    return 0;
+}
+
+// mbedtls_x509_dn_gets() writes `AT=value, AT=value, ...` and backslash-escapes
+// any separator that occurs inside a value.
+inline void bridge_parse_dn_(X509_NAME_OPENSSL* name) {
+    if (!name->entries.empty()) return;
+    const std::string& s = name->str;
+    size_t i = 0;
+    while (i < s.size()) {
+        while (i < s.size() && (s[i] == ' ' || s[i] == ',')) i++;
+        size_t eq = s.find('=', i);
+        if (eq == std::string::npos) break;
+        std::string attr = s.substr(i, eq - i);
+        std::vector<unsigned char> val;
+        size_t j = eq + 1;
+        for (; j < s.size(); j++) {
+            if (s[j] == '\\' && j + 1 < s.size()) {
+                val.push_back((unsigned char) s[++j]);
+                continue;
+            }
+            if (s[j] == ',') break;
+            val.push_back((unsigned char) s[j]);
+        }
+        name->entries.push_back(new X509_NAME_ENTRY(bridge_nid_from_dn_attr_(attr), val));
+        i = j;
+    }
+}
+
+inline int X509_NAME_entry_count(X509_NAME_OPENSSL* name) {
+    if (!name) return 0;
+    bridge_parse_dn_(name);
+    return (int) name->entries.size();
+}
+
+inline int X509_NAME_get_index_by_NID(X509_NAME_OPENSSL* name, int nid, int lastpos) {
+    if (!name) return -1;
+    bridge_parse_dn_(name);
+    for (int i = (lastpos < 0) ? 0 : lastpos + 1; i < (int) name->entries.size(); i++) {
+        if (name->entries[i]->nid == nid) return i;
+    }
+    return -1;
+}
+
+inline X509_NAME_ENTRY* X509_NAME_get_entry(X509_NAME_OPENSSL* name, int idx) {
+    if (!name) return nullptr;
+    bridge_parse_dn_(name);
+    if (idx < 0 || idx >= (int) name->entries.size()) return nullptr;
+    return name->entries[idx];
+}
+
+inline const GENERAL_NAME* X509_NAME_ENTRY_get_data(const X509_NAME_ENTRY* e) {
+    return e ? &e->value : nullptr;
 }
 
 #endif // CPPHTTPLIB_HTTPLIB_MBEDTLS_H
