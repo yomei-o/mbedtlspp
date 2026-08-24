@@ -5,7 +5,7 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.hpp"
+#include "ssl_misc.hpp"
 
 #if defined(MBEDTLS_VERSION_C)
 
@@ -17,16 +17,14 @@ static inline unsigned int mbedtls_version_get_number(void)
     return MBEDTLS_VERSION_NUMBER;
 }
 
-static inline void mbedtls_version_get_string(char *string)
+static inline const char *mbedtls_version_get_string(void)
 {
-    memcpy(string, MBEDTLS_VERSION_STRING,
-           sizeof(MBEDTLS_VERSION_STRING));
+    return MBEDTLS_VERSION_STRING;
 }
 
-static inline void mbedtls_version_get_string_full(char *string)
+static inline const char *mbedtls_version_get_string_full(void)
 {
-    memcpy(string, MBEDTLS_VERSION_STRING_FULL,
-           sizeof(MBEDTLS_VERSION_STRING_FULL));
+    return MBEDTLS_VERSION_STRING_FULL;
 }
 
 #endif /* MBEDTLS_VERSION_C */

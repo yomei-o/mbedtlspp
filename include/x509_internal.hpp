@@ -9,17 +9,17 @@
  */
 #ifndef MBEDTLS_X509_INTERNAL_H
 #define MBEDTLS_X509_INTERNAL_H
+
+#include "tf_psa_crypto_common.hpp"
+#include "mbedtls_build_info.hpp"
 #include "mbedtls_private_access.hpp"
 
-#include "mbedtls_build_info.hpp"
-
 #include "mbedtls_x509.hpp"
-#include "mbedtls_x509_crt.hpp"
 #include "mbedtls_asn1.hpp"
 #include "pk_internal.hpp"
 
 #if defined(MBEDTLS_RSA_C)
-#include "mbedtls_rsa.hpp"
+#include "mbedtls_private_rsa.hpp"
 #endif
 
 static inline int mbedtls_x509_get_name(unsigned char **p, const unsigned char *end,
@@ -35,8 +35,7 @@ static inline int mbedtls_x509_get_rsassa_pss_params(const mbedtls_x509_buf *par
 #endif
 static inline int mbedtls_x509_get_sig(unsigned char **p, const unsigned char *end, mbedtls_x509_buf *sig);
 static inline int mbedtls_x509_get_sig_alg(const mbedtls_x509_buf *sig_oid, const mbedtls_x509_buf *sig_params,
-                             mbedtls_md_type_t *md_alg, mbedtls_pk_type_t *pk_alg,
-                             void **sig_opts);
+                             mbedtls_md_type_t *md_alg, mbedtls_pk_sigalg_t *pk_alg);
 static inline int mbedtls_x509_get_time(unsigned char **p, const unsigned char *end,
                           mbedtls_x509_time *t);
 static inline int mbedtls_x509_get_serial(unsigned char **p, const unsigned char *end,
@@ -45,8 +44,7 @@ static inline int mbedtls_x509_get_ext(unsigned char **p, const unsigned char *e
                          mbedtls_x509_buf *ext, int tag);
 #if !defined(MBEDTLS_X509_REMOVE_INFO)
 static inline int mbedtls_x509_sig_alg_gets(char *buf, size_t size, const mbedtls_x509_buf *sig_oid,
-                              mbedtls_pk_type_t pk_alg, mbedtls_md_type_t md_alg,
-                              const void *sig_opts);
+                              mbedtls_pk_sigalg_t pk_alg, mbedtls_md_type_t md_alg);
 #endif
 static inline int mbedtls_x509_key_size_helper(char *buf, size_t buf_size, const char *name);
 static inline int mbedtls_x509_set_extension(mbedtls_asn1_named_data **head, const char *oid, size_t oid_len,
@@ -59,7 +57,7 @@ static inline int mbedtls_x509_write_names(unsigned char **p, unsigned char *sta
 static inline int mbedtls_x509_write_sig(unsigned char **p, unsigned char *start,
                            const char *oid, size_t oid_len,
                            unsigned char *sig, size_t size,
-                           mbedtls_pk_type_t pk_alg);
+                           mbedtls_pk_sigalg_t pk_alg);
 static inline int mbedtls_x509_get_ns_cert_type(unsigned char **p,
                                   const unsigned char *end,
                                   unsigned char *ns_cert_type);
@@ -83,19 +81,5 @@ static inline int mbedtls_x509_info_key_usage(char **buf, size_t *size,
 
 static inline int mbedtls_x509_write_set_san_common(mbedtls_asn1_named_data **extensions,
                                       const mbedtls_x509_san_list *san_list);
-
-/*
- * Check md_alg against profile
- * Return 0 if md_alg is acceptable for this profile, -1 otherwise
- */
-static inline int mbedtls_x509_profile_check_md_alg(const mbedtls_x509_crt_profile *profile,
-                                      mbedtls_md_type_t md_alg);
-
-/*
- * Check pk_alg against profile
- * Return 0 if pk_alg is acceptable for this profile, -1 otherwise
- */
-static inline int mbedtls_x509_profile_check_pk_alg(const mbedtls_x509_crt_profile *profile,
-                                      mbedtls_pk_type_t pk_alg);
 
 #endif /* MBEDTLS_X509_INTERNAL_H */

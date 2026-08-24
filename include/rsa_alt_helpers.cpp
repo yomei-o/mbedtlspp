@@ -6,12 +6,12 @@
  *
  */
 
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
 #if defined(MBEDTLS_RSA_C)
 
-#include "mbedtls_rsa.hpp"
-#include "mbedtls_bignum.hpp"
+#include "mbedtls_private_rsa.hpp"
+#include "mbedtls_private_bignum.hpp"
 #include "bignum_internal.hpp"
 #include "rsa_alt_helpers.hpp"
 
@@ -188,7 +188,7 @@ static inline int mbedtls_rsa_deduce_private_exponent(mbedtls_mpi const *P,
     int ret = 0;
     mbedtls_mpi K, L;
 
-    if (D == NULL) {
+    if (D == NULL || mbedtls_mpi_cmp_int(D, 0) != 0) {
         return MBEDTLS_ERR_MPI_BAD_INPUT_DATA;
     }
 

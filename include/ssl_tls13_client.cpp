@@ -5,7 +5,7 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.hpp"
+#include "ssl_misc.hpp"
 
 #if defined(MBEDTLS_SSL_CLI_C) && defined(MBEDTLS_SSL_PROTO_TLS1_3)
 
@@ -15,7 +15,6 @@
 #include "mbedtls_error.hpp"
 #include "mbedtls_platform.hpp"
 
-#include "ssl_misc.hpp"
 #include "ssl_client.hpp"
 #include "ssl_tls13_keys.hpp"
 #include "ssl_debug_helpers.hpp"
@@ -160,7 +159,7 @@ static inline  int ssl_tls13_parse_alpn_ext(mbedtls_ssl_context *ssl,
 
     /* Check that the server chosen protocol was in our list and save it */
     MBEDTLS_SSL_CHK_BUF_READ_PTR(p, protocol_name_list_end, protocol_name_len);
-    for (const char **alpn = ssl->conf->alpn_list; *alpn != NULL; alpn++) {
+    for (const char *const *alpn = ssl->conf->alpn_list; *alpn != NULL; alpn++) {
         if (protocol_name_len == strlen(*alpn) &&
             memcmp(p, *alpn, protocol_name_len) == 0) {
             ssl->alpn_chosen = *alpn;
@@ -218,7 +217,7 @@ static inline  int ssl_tls13_get_default_group_id(mbedtls_ssl_context *ssl,
 
 
 #if defined(PSA_WANT_ALG_ECDH) || defined(PSA_WANT_ALG_FFDH)
-    const uint16_t *group_list = (const uint16_t*)mbedtls_ssl_get_groups(ssl);
+    const uint16_t *group_list = ssl->conf->group_list;
     /* Pick first available ECDHE group compatible with TLS 1.3 */
     if (group_list == NULL) {
         return MBEDTLS_ERR_SSL_BAD_CONFIG;
@@ -384,7 +383,7 @@ static inline  int ssl_tls13_parse_hrr_key_share_ext(mbedtls_ssl_context *ssl,
     int selected_group;
     int found = 0;
 
-    const uint16_t *group_list = (const uint16_t*)mbedtls_ssl_get_groups(ssl);
+    const uint16_t *group_list = ssl->conf->group_list;
     if (group_list == NULL) {
         return MBEDTLS_ERR_SSL_BAD_CONFIG;
     }
@@ -406,18 +405,14 @@ static inline  int ssl_tls13_parse_hrr_key_share_ext(mbedtls_ssl_context *ssl,
      * then the client MUST abort the handshake with an "illegal_parameter" alert.
      */
     for (; *group_list != 0; group_list++) {
-        if (*group_list != selected_group) {
-            continue;
-        }
 #if defined(PSA_WANT_ALG_ECDH)
         if (mbedtls_ssl_tls13_named_group_is_ecdhe(*group_list)) {
-            if (mbedtls_ssl_get_psa_curve_info_from_tls_id(
-                    *group_list, NULL, NULL) == PSA_ERROR_NOT_SUPPORTED) {
-                continue;
+            if ((mbedtls_ssl_get_psa_curve_info_from_tls_id(
+                     *group_list, NULL, NULL) == PSA_ERROR_NOT_SUPPORTED) ||
+                *group_list != selected_group) {
+                found = 1;
+                break;
             }
-            /* Found only if psa_curve is supported and group_list == selected_group */
-            found = 1;
-            break;
         }
 #endif /* PSA_WANT_ALG_ECDH */
 #if defined(PSA_WANT_ALG_FFDH)
@@ -1146,11 +1141,6 @@ static inline int mbedtls_ssl_tls13_write_client_hello_exts(mbedtls_ssl_context 
     size_t ext_len;
 
     *out_len = 0;
-
-    ret = mbedtls_ssl_tls13_crypto_init(ssl);
-    if (ret != 0) {
-        return ret;
-    }
 
     /* Write supported_versions extension
      *
@@ -2023,19 +2013,6 @@ static inline  int ssl_tls13_process_server_hello(mbedtls_ssl_context *ssl)
         goto cleanup;
     }
 
-    /*
-     * TLS 1.3 is negotiated. Check that ServerHello/HRR ends at a record
-     * boundary. For HRR, which does not trigger a key update, this checks
-     * that HRR terminates the server flight.
-     */
-    if (ssl->in_hslen != ssl->in_msglen) {
-        MBEDTLS_SSL_DEBUG_MSG(1, ("ServerHello end not aligned with a record boundary"));
-        ret = MBEDTLS_ERR_SSL_UNEXPECTED_MESSAGE;
-        MBEDTLS_SSL_PEND_FATAL_ALERT(MBEDTLS_SSL_ALERT_MSG_UNEXPECTED_MESSAGE,
-                                     MBEDTLS_ERR_SSL_UNEXPECTED_MESSAGE);
-        goto cleanup;
-    }
-
     MBEDTLS_SSL_PROC_CHK(ssl_tls13_parse_server_hello(ssl, buf,
                                                       buf + buf_len,
                                                       is_hrr));
@@ -2288,9 +2265,6 @@ static inline  int ssl_tls13_process_encrypted_extensions(mbedtls_ssl_context *s
 #if defined(MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL_ENABLED)
     if (mbedtls_ssl_tls13_key_exchange_mode_with_psk(ssl)) {
         mbedtls_ssl_handshake_set_state(ssl, MBEDTLS_SSL_SERVER_FINISHED);
-
-        /* Since we're not using a certificate, set verify_result to success */
-        ssl->session_negotiate->verify_result = 0;
     } else {
         mbedtls_ssl_handshake_set_state(ssl, MBEDTLS_SSL_CERTIFICATE_REQUEST);
     }
@@ -2824,7 +2798,6 @@ static inline  int ssl_tls13_parse_new_session_ticket_exts(mbedtls_ssl_context *
                     MBEDTLS_SSL_DEBUG_RET(
                         1, "ssl_tls13_parse_new_session_ticket_early_data_ext",
                         ret);
-                    return ret;
                 }
                 break;
 #endif /* MBEDTLS_SSL_EARLY_DATA */

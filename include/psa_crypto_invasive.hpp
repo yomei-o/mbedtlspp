@@ -16,19 +16,12 @@
 #ifndef PSA_CRYPTO_INVASIVE_H
 #define PSA_CRYPTO_INVASIVE_H
 
-/*
- * Include the build-time configuration information header. Here, we do not
- * include `"mbedtls_build_info.h"` directly but `"psa/build_info.h"`, which
- * is basically just an alias to it. This is to ease the maintenance of the
- * TF-PSA-Crypto repository which has a different build system and
- * configuration.
- */
-#include "psa_build_info.hpp"
+#include "tf-psa-crypto_build_info.hpp"
 
 #include "psa_crypto.hpp"
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
-#include "mbedtls_entropy.hpp"
+#include "mbedtls_private_entropy.hpp"
 
 #if !defined(MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG)
 /** \brief Configure entropy sources.

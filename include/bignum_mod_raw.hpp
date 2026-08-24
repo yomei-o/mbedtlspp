@@ -66,10 +66,10 @@
 #ifndef MBEDTLS_BIGNUM_MOD_RAW_H
 #define MBEDTLS_BIGNUM_MOD_RAW_H
 
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
 #if defined(MBEDTLS_BIGNUM_C)
-#include "mbedtls_bignum.hpp"
+#include "mbedtls_private_bignum.hpp"
 #endif
 
 #include "bignum_mod.hpp"

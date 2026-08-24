@@ -6,22 +6,18 @@
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
 #if defined(MBEDTLS_CHACHAPOLY_C)
 
-#include "mbedtls_chachapoly.hpp"
+#include "mbedtls_private_chachapoly.hpp"
 #include "mbedtls_platform_util.hpp"
-#include "mbedtls_error.hpp"
+#include "mbedtls_private_error_common.hpp"
 #include "mbedtls_constant_time.hpp"
 
 #include <string.h>
 
-#include "chacha20_internal.hpp"
-
 #include "mbedtls_platform.hpp"
-
-#if !defined(MBEDTLS_CHACHAPOLY_ALT)
 
 #define CHACHAPOLY_STATE_INIT       (0)
 #define CHACHAPOLY_STATE_AAD        (1)
@@ -166,13 +162,6 @@ static inline int mbedtls_chachapoly_update(mbedtls_chachapoly_context *ctx,
         (ctx->state != CHACHAPOLY_STATE_CIPHERTEXT)) {
         return MBEDTLS_ERR_CHACHAPOLY_BAD_STATE;
     }
-
-#if !defined(MBEDTLS_CHACHA20_ALT)
-    ret = mbedtls_chacha20_check_counter_wrap(&ctx->chacha20_ctx, len);
-    if (ret != 0) {
-        return ret;
-    }
-#endif /* !MBEDTLS_CHACHA20_ALT */
 
     if (ctx->state == CHACHAPOLY_STATE_AAD) {
         ctx->state = CHACHAPOLY_STATE_CIPHERTEXT;
@@ -326,8 +315,6 @@ static inline int mbedtls_chachapoly_auth_decrypt(mbedtls_chachapoly_context *ct
 
     return 0;
 }
-
-#endif /* MBEDTLS_CHACHAPOLY_ALT */
 
 #if defined(MBEDTLS_SELF_TEST)
 

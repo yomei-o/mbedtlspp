@@ -14,7 +14,7 @@
 #ifndef MBEDTLS_CIPHER_INVASIVE_H
 #define MBEDTLS_CIPHER_INVASIVE_H
 
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
 #if defined(MBEDTLS_TEST_HOOKS) && defined(MBEDTLS_CIPHER_C)
 

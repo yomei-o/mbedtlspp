@@ -6,19 +6,17 @@
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
 #if defined(MBEDTLS_POLY1305_C)
 
-#include "mbedtls_poly1305.hpp"
+#include "mbedtls_private_poly1305.hpp"
 #include "mbedtls_platform_util.hpp"
-#include "mbedtls_error.hpp"
+#include "mbedtls_private_error_common.hpp"
 
 #include <string.h>
 
 #include "mbedtls_platform.hpp"
-
-#if !defined(MBEDTLS_POLY1305_ALT)
 
 #define POLY1305_BLOCK_SIZE_BYTES (16U)
 
@@ -372,8 +370,6 @@ cleanup:
     mbedtls_poly1305_free(&ctx);
     return ret;
 }
-
-#endif /* MBEDTLS_POLY1305_ALT */
 
 #if defined(MBEDTLS_SELF_TEST)
 

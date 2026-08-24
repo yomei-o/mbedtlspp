@@ -6,7 +6,7 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
 #if defined(MBEDTLS_PSA_CRYPTO_C)
 
@@ -18,14 +18,14 @@
 #include "psa_crypto_hash.hpp"
 #include "mbedtls_psa_util.hpp"
 
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include "mbedtls_platform.hpp"
 
-#include <mbedtls_rsa.hpp>
-#include <mbedtls_error.hpp>
+#include <mbedtls_private_rsa.hpp>
+#include <mbedtls_private_error_common.hpp>
 #include "rsa_internal.hpp"
-#include "constant_time_internal.hpp"
 
 #if defined(MBEDTLS_PSA_BUILTIN_ALG_RSA_PKCS1V15_CRYPT) || \
     defined(MBEDTLS_PSA_BUILTIN_ALG_RSA_OAEP) || \
@@ -205,7 +205,6 @@ static inline psa_status_t mbedtls_psa_rsa_export_public_key(
                                             data_size,
                                             data_length);
     }
-
     mbedtls_rsa_free(rsa);
     mbedtls_free(rsa);
 
@@ -653,22 +652,14 @@ static inline psa_status_t mbedtls_psa_asymmetric_decrypt(const psa_key_attribut
 
         if (alg == PSA_ALG_RSA_PKCS1V15_CRYPT) {
 #if defined(MBEDTLS_PSA_BUILTIN_ALG_RSA_PKCS1V15_CRYPT)
-            int combined_ret = mbedtls_rsa_rsaes_pkcs1_v15_decrypt(
-                rsa, mbedtls_psa_get_random, MBEDTLS_PSA_RANDOM_STATE,
-                output_length, input, output, output_size);
-
-            /* Translate error codes from legacy to PSA.
-             * Success vs INVALID_PADDING vs OUTPUT_TOO_LARGE is sensitive
-             * (padding oracle attack), so we take care to translate that
-             * part in constant time.
-             */
-            int problem;
-            int public_ret = mbedtls_rsa_decrypt_decompose_ret(
-                MBEDTLS_ERR_RSA_INVALID_PADDING, PSA_ERROR_INVALID_PADDING,
-                MBEDTLS_ERR_RSA_OUTPUT_TOO_LARGE, PSA_ERROR_BUFFER_TOO_SMALL,
-                combined_ret, &problem);
-            status = mbedtls_to_psa_error(public_ret);
-            status |= problem;
+            status = mbedtls_to_psa_error(
+                mbedtls_rsa_pkcs1_decrypt(rsa,
+                                          mbedtls_psa_get_random,
+                                          MBEDTLS_PSA_RANDOM_STATE,
+                                          output_length,
+                                          input,
+                                          output,
+                                          output_size));
 #else
             status = PSA_ERROR_NOT_SUPPORTED;
 #endif /* MBEDTLS_PSA_BUILTIN_ALG_RSA_PKCS1V15_CRYPT */

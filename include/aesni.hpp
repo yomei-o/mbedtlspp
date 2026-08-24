@@ -13,9 +13,9 @@
 #ifndef MBEDTLS_AESNI_H
 #define MBEDTLS_AESNI_H
 
-#include "mbedtls_build_info.hpp"
+#include "tf-psa-crypto_build_info.hpp"
 
-#include "mbedtls_aes.hpp"
+#include "mbedtls_private_aes.hpp"
 
 #define MBEDTLS_AESNI_AES      0x02000000u
 #define MBEDTLS_AESNI_CLMUL    0x00000002u

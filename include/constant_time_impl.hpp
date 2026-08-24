@@ -10,10 +10,10 @@
 
 #include <stddef.h>
 
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
 #if defined(MBEDTLS_BIGNUM_C)
-#include "mbedtls_bignum.hpp"
+#include "mbedtls_private_bignum.hpp"
 #endif
 
 /*

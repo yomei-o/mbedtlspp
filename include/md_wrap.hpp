@@ -14,7 +14,7 @@
 #ifndef MBEDTLS_MD_WRAP_H
 #define MBEDTLS_MD_WRAP_H
 
-#include "mbedtls_build_info.hpp"
+#include "tf-psa-crypto_build_info.hpp"
 
 #include "mbedtls_md.hpp"
 

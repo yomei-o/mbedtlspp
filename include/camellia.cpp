@@ -11,18 +11,16 @@
  *  http://info.isl.ntt.co.jp/crypt/eng/camellia/dl/01espec.pdf
  */
 
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
 #if defined(MBEDTLS_CAMELLIA_C)
 
-#include "mbedtls_camellia.hpp"
+#include "mbedtls_private_camellia.hpp"
 #include "mbedtls_platform_util.hpp"
 
 #include <string.h>
 
 #include "mbedtls_platform.hpp"
-
-#if !defined(MBEDTLS_CAMELLIA_ALT)
 
 static inline  const unsigned char SIGMA_CHARS[6][8] =
 {
@@ -657,7 +655,6 @@ static inline int mbedtls_camellia_crypt_ctr(mbedtls_camellia_context *ctx,
     return 0;
 }
 #endif /* MBEDTLS_CIPHER_MODE_CTR */
-#endif /* !MBEDTLS_CAMELLIA_ALT */
 
 #if defined(MBEDTLS_SELF_TEST)
 

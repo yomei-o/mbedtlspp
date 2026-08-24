@@ -10,12 +10,11 @@
 #ifndef MBEDTLS_BASE64_H
 #define MBEDTLS_BASE64_H
 
-#include "mbedtls_build_info.hpp"
+#include "tf-psa-crypto_build_info.hpp"
+#include "mbedtls_compat-3-crypto.hpp"
 
 #include <stddef.h>
 
-/** Output buffer too small. */
-#define MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL               -0x002A
 /** Invalid character in input. */
 #define MBEDTLS_ERR_BASE64_INVALID_CHARACTER              -0x002C
 
@@ -32,7 +31,7 @@
  * \param src      source buffer
  * \param slen     amount of data to be encoded
  *
- * \return         0 if successful, or MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL.
+ * \return         0 if successful, or #PSA_ERROR_BUFFER_TOO_SMALL.
  *                 *olen is always updated to reflect the amount
  *                 of data that has (or would have) been written.
  *                 If that length cannot be represented, then no data is
@@ -54,7 +53,7 @@ static inline int mbedtls_base64_encode(unsigned char *dst, size_t dlen, size_t 
  * \param src      source buffer
  * \param slen     amount of data to be decoded
  *
- * \return         0 if successful, MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL, or
+ * \return         0 if successful, #PSA_ERROR_BUFFER_TOO_SMALL, or
  *                 MBEDTLS_ERR_BASE64_INVALID_CHARACTER if the input data is
  *                 not correct. *olen is always updated to reflect the amount
  *                 of data that has (or would have) been written.

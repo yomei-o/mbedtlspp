@@ -9,7 +9,7 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
 #if defined(MBEDTLS_BLOCK_CIPHER_SOME_PSA)
 #include "psa_crypto.hpp"
@@ -94,7 +94,7 @@ static inline int mbedtls_block_cipher_setup(mbedtls_block_cipher_context_t *ctx
 #if defined(MBEDTLS_BLOCK_CIPHER_SOME_PSA)
     psa_key_type_t psa_key_type = psa_key_type_from_block_cipher_id(ctx->id);
     if (psa_key_type != PSA_KEY_TYPE_NONE &&
-        psa_can_do_cipher(psa_key_type, PSA_ALG_ECB_NO_PADDING)) {
+        psa_is_ready_for_cipher()) {
         ctx->engine = MBEDTLS_BLOCK_CIPHER_ENGINE_PSA;
         return 0;
     }

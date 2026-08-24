@@ -11,11 +11,11 @@
 #ifndef MBEDTLS_BLOCK_CIPHER_INTERNAL_H
 #define MBEDTLS_BLOCK_CIPHER_INTERNAL_H
 
-#include "mbedtls_build_info.hpp"
+#include "tf-psa-crypto_build_info.hpp"
 
-#include "mbedtls_cipher.hpp"
+#include "mbedtls_private_cipher.hpp"
 
-#include "mbedtls_block_cipher.hpp"
+#include "mbedtls_private_block_cipher.hpp"
 
 // #ifdef __cplusplus
 // extern "C" {

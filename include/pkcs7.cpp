@@ -2,16 +2,15 @@
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
-#include "common.hpp"
+#include "x509_internal.hpp"
 
-#include "mbedtls_build_info.hpp"
 #if defined(MBEDTLS_PKCS7_C)
 #include "mbedtls_pkcs7.hpp"
-#include "x509_internal.hpp"
 #include "mbedtls_asn1.hpp"
 #include "mbedtls_x509_crt.hpp"
 #include "mbedtls_x509_crl.hpp"
 #include "mbedtls_oid.hpp"
+#include "x509_oid.hpp"
 #include "mbedtls_error.hpp"
 
 #if defined(MBEDTLS_FS_IO)
@@ -482,7 +481,7 @@ static inline  int pkcs7_get_signed_data(unsigned char *buf, size_t buflen,
         return ret;
     }
 
-    ret = mbedtls_oid_get_md_alg(&signed_data->digest_alg_identifiers, &md_alg);
+    ret = mbedtls_x509_oid_get_md_alg(&signed_data->digest_alg_identifiers, &md_alg);
     if (ret != 0) {
         return MBEDTLS_ERR_PKCS7_INVALID_ALG;
     }
@@ -661,24 +660,10 @@ static inline  int mbedtls_pkcs7_data_or_hash_verify(mbedtls_pkcs7 *pkcs7,
         return MBEDTLS_ERR_PKCS7_CERT_DATE_INVALID;
     }
 
-    ret = mbedtls_oid_get_md_alg(&pkcs7->signed_data.digest_alg_identifiers, &md_alg);
+    ret = mbedtls_x509_oid_get_md_alg(&pkcs7->signed_data.digest_alg_identifiers, &md_alg);
     if (ret != 0) {
         return ret;
     }
-
-#if !defined(MBEDTLS_PKCS7_ALLOW_WEAK_SIGNATURES)
-    /* Ensure the MD alg from the PKCS#7 context and signature algorithm from
-     * the certificate belong to the list of secure algorithms
-     * (i.e. mbedtls_x509_crt_profile_default). */
-    ret = mbedtls_x509_profile_check_md_alg(&mbedtls_x509_crt_profile_default, md_alg);
-    if (ret != 0) {
-        return MBEDTLS_ERR_PKCS7_INVALID_ALG;
-    }
-    ret = mbedtls_x509_profile_check_pk_alg(&mbedtls_x509_crt_profile_default, cert->sig_pk);
-    if (ret != 0) {
-        return MBEDTLS_ERR_PKCS7_INVALID_ALG;
-    }
-#endif /* MBEDTLS_PKCS7_ALLOW_WEAK_SIGNATURES */
 
     md_info = mbedtls_md_info_from_type(md_alg);
     if (md_info == NULL) {
@@ -781,7 +766,7 @@ static inline void mbedtls_pkcs7_free(mbedtls_pkcs7 *pkcs7)
         mbedtls_free(signer_prev);
     }
 
-    mbedtls_platform_zeroize(pkcs7, sizeof(*pkcs7));
+    pkcs7->raw.p = NULL;
 }
 
 #endif

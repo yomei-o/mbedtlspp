@@ -10,17 +10,15 @@
  * available to members of the Thread Group http://threadgroup.org/
  */
 
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
 #if defined(MBEDTLS_ECJPAKE_C)
 
-#include "mbedtls_ecjpake.hpp"
+#include "mbedtls_private_ecjpake.hpp"
 #include "mbedtls_platform_util.hpp"
-#include "mbedtls_error.hpp"
+#include "mbedtls_private_error_common.hpp"
 
 #include <string.h>
-
-#if !defined(MBEDTLS_ECJPAKE_ALT)
 
 /*
  * Convert a mbedtls_ecjpake_role to identifier string
@@ -820,14 +818,12 @@ cleanup:
 #undef ID_MINE
 #undef ID_PEER
 
-#endif /* ! MBEDTLS_ECJPAKE_ALT */
-
 #if defined(MBEDTLS_SELF_TEST)
 
 #include "mbedtls_platform.hpp"
 
 #if !defined(MBEDTLS_ECP_DP_SECP256R1_ENABLED) || \
-    !defined(MBEDTLS_MD_CAN_SHA256)
+    !defined(PSA_WANT_ALG_SHA_256)
 static inline int mbedtls_ecjpake_self_test(int verbose)
 {
     (void) verbose;
@@ -839,8 +835,6 @@ static inline  const unsigned char ecjpake_test_password[] = {
     0x74, 0x68, 0x72, 0x65, 0x61, 0x64, 0x6a, 0x70, 0x61, 0x6b, 0x65, 0x74,
     0x65, 0x73, 0x74
 };
-
-#if !defined(MBEDTLS_ECJPAKE_ALT)
 
 static inline  const unsigned char ecjpake_test_x1[] = {
     0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c,
@@ -1016,8 +1010,6 @@ cleanup:
     return ret;
 }
 
-#endif /* ! MBEDTLS_ECJPAKE_ALT */
-
 /* For tests we don't need a secure RNG;
  * use the LGC from Numerical Recipes for simplicity */
 static inline  int ecjpake_lgc(void *p, unsigned char *out, size_t len)
@@ -1116,7 +1108,6 @@ static inline int mbedtls_ecjpake_self_test(int verbose)
         mbedtls_printf("passed\n");
     }
 
-#if !defined(MBEDTLS_ECJPAKE_ALT)
     /* 'reference handshake' tests can only be run against implementations
      * for which we have 100% control over how the random ephemeral keys
      * are generated. This is only the case for the internal Mbed TLS
@@ -1186,7 +1177,6 @@ static inline int mbedtls_ecjpake_self_test(int verbose)
     if (verbose != 0) {
         mbedtls_printf("passed\n");
     }
-#endif /* ! MBEDTLS_ECJPAKE_ALT */
 
 cleanup:
     mbedtls_ecjpake_free(&cli);
@@ -1209,7 +1199,7 @@ cleanup:
 
 #undef TEST_ASSERT
 
-#endif /* MBEDTLS_ECP_DP_SECP256R1_ENABLED && MBEDTLS_MD_CAN_SHA256 */
+#endif /* MBEDTLS_ECP_DP_SECP256R1_ENABLED && PSA_WANT_ALG_SHA_256 */
 
 #endif /* MBEDTLS_SELF_TEST */
 

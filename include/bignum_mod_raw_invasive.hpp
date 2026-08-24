@@ -12,8 +12,8 @@
 #ifndef MBEDTLS_BIGNUM_MOD_RAW_INVASIVE_H
 #define MBEDTLS_BIGNUM_MOD_RAW_INVASIVE_H
 
-#include "common.hpp"
-#include "mbedtls_bignum.hpp"
+#include "tf_psa_crypto_common.hpp"
+#include "mbedtls_private_bignum.hpp"
 #include "bignum_mod.hpp"
 
 #if defined(MBEDTLS_TEST_HOOKS)

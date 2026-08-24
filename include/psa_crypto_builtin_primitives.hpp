@@ -1,8 +1,10 @@
-/*
- *  Context structure declaration of the Mbed TLS software-based PSA drivers
- *  called through the PSA Crypto driver dispatch layer.
- *  This file contains the context structures of those algorithms which do not
- *  rely on other algorithms, i.e. are 'primitive' algorithms.
+/**
+ * \file crypto_builtin_primitives.h
+ *
+ * \brief Context structure declaration of the Mbed TLS software-based PSA
+ * drivers called through the PSA Crypto driver dispatch layer. This file
+ * contains the context structures of those algorithms which do not rely on
+ * other algorithms, i.e. are 'primitive' algorithms.
  *
  * \note This file may not be included directly. Applications must
  * include psa_crypto.h.
@@ -28,12 +30,12 @@
  * Hash multi-part operation definitions.
  */
 
-#include "mbedtls_md5.hpp"
-#include "mbedtls_ripemd160.hpp"
-#include "mbedtls_sha1.hpp"
-#include "mbedtls_sha256.hpp"
-#include "mbedtls_sha512.hpp"
-#include "mbedtls_sha3.hpp"
+#include "mbedtls_private_md5.hpp"
+#include "mbedtls_private_ripemd160.hpp"
+#include "mbedtls_private_sha1.hpp"
+#include "mbedtls_private_sha256.hpp"
+#include "mbedtls_private_sha512.hpp"
+#include "mbedtls_private_sha3.hpp"
 
 #if defined(MBEDTLS_PSA_BUILTIN_ALG_MD5) || \
     defined(MBEDTLS_PSA_BUILTIN_ALG_RIPEMD160) || \
@@ -85,7 +87,7 @@ typedef struct {
  * Cipher multi-part operation definitions.
  */
 
-#include "mbedtls_cipher.hpp"
+#include "mbedtls_private_cipher.hpp"
 
 #if defined(MBEDTLS_PSA_BUILTIN_ALG_STREAM_CIPHER) || \
     defined(MBEDTLS_PSA_BUILTIN_ALG_CTR) || \

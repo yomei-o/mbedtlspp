@@ -28,14 +28,7 @@
 #ifndef PSA_CRYPTO_SIZES_H
 #define PSA_CRYPTO_SIZES_H
 
-/*
- * Include the build-time configuration information header. Here, we do not
- * include `"mbedtls_build_info.h"` directly but `"psa/build_info.h"`, which
- * is basically just an alias to it. This is to ease the maintenance of the
- * TF-PSA-Crypto repository which has a different build system and
- * configuration.
- */
-#include "psa_build_info.hpp"
+#include "tf-psa-crypto_build_info.hpp"
 
 #define PSA_BITS_TO_BYTES(bits) (((bits) + 7u) / 8u)
 #define PSA_BYTES_TO_BITS(bytes) ((bytes) * 8u)
@@ -259,10 +252,6 @@
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 256u
 #elif defined(PSA_WANT_ECC_MONTGOMERY_255)
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 255u
-#elif defined(PSA_WANT_ECC_SECP_R1_224)
-#define PSA_VENDOR_ECC_MAX_CURVE_BITS 224u
-#elif defined(PSA_WANT_ECC_SECP_K1_224)
-#define PSA_VENDOR_ECC_MAX_CURVE_BITS 224u
 #elif defined(PSA_WANT_ECC_SECP_R1_192)
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 192u
 #elif defined(PSA_WANT_ECC_SECP_K1_192)
@@ -912,11 +901,15 @@
  *         If the parameters are not valid, the return value is unspecified.
  */
 #define PSA_EXPORT_KEY_OUTPUT_SIZE(key_type, key_bits)                                              \
-    ((key_type) == PSA_KEY_TYPE_RSA_KEY_PAIR ? PSA_KEY_EXPORT_RSA_KEY_PAIR_MAX_SIZE(key_bits) :     \
+    (PSA_KEY_TYPE_IS_UNSTRUCTURED(key_type) ? PSA_BITS_TO_BYTES(key_bits) :                         \
+     PSA_KEY_TYPE_IS_DH(key_type) ? PSA_BITS_TO_BYTES(key_bits) :                                   \
+     (key_type) == PSA_KEY_TYPE_RSA_KEY_PAIR ? PSA_KEY_EXPORT_RSA_KEY_PAIR_MAX_SIZE(key_bits) :     \
      (key_type) == PSA_KEY_TYPE_RSA_PUBLIC_KEY ? PSA_KEY_EXPORT_RSA_PUBLIC_KEY_MAX_SIZE(key_bits) : \
+     (key_type) == PSA_KEY_TYPE_DSA_KEY_PAIR ? PSA_KEY_EXPORT_DSA_KEY_PAIR_MAX_SIZE(key_bits) :     \
+     (key_type) == PSA_KEY_TYPE_DSA_PUBLIC_KEY ? PSA_KEY_EXPORT_DSA_PUBLIC_KEY_MAX_SIZE(key_bits) : \
      PSA_KEY_TYPE_IS_ECC_KEY_PAIR(key_type) ? PSA_KEY_EXPORT_ECC_KEY_PAIR_MAX_SIZE(key_bits) :      \
      PSA_KEY_TYPE_IS_ECC_PUBLIC_KEY(key_type) ? PSA_KEY_EXPORT_ECC_PUBLIC_KEY_MAX_SIZE(key_bits) :  \
-     PSA_BITS_TO_BYTES(key_bits)) /*unstructured; FFDH public or private*/
+     0u)
 
 /** Sufficient output buffer size for psa_export_public_key().
  *
@@ -1034,15 +1027,9 @@
     PSA_KEY_EXPORT_FFDH_PUBLIC_KEY_MAX_SIZE(PSA_VENDOR_FFDH_MAX_KEY_BITS)
 #endif
 
-/* This is the name that was standardized in PSA Crypto v1.3 */
-#define PSA_EXPORT_ASYMMETRIC_KEY_MAX_SIZE \
+#define PSA_EXPORT_KEY_PAIR_OR_PUBLIC_MAX_SIZE \
     ((PSA_EXPORT_KEY_PAIR_MAX_SIZE > PSA_EXPORT_PUBLIC_KEY_MAX_SIZE) ? \
      PSA_EXPORT_KEY_PAIR_MAX_SIZE : PSA_EXPORT_PUBLIC_KEY_MAX_SIZE)
-
-/* This is our old custom name from before it was in the spec,
- * keep it around in case users were relying on it. */
-#define PSA_EXPORT_KEY_PAIR_OR_PUBLIC_MAX_SIZE \
-    PSA_EXPORT_ASYMMETRIC_KEY_MAX_SIZE
 
 /** Sufficient output buffer size for psa_raw_key_agreement().
  *
@@ -1106,8 +1093,6 @@
 #if (defined(PSA_WANT_KEY_TYPE_AES) || defined(PSA_WANT_KEY_TYPE_ARIA) || \
     defined(PSA_WANT_KEY_TYPE_CAMELLIA) || defined(PSA_WANT_KEY_TYPE_CHACHA20))
 #define PSA_CIPHER_MAX_KEY_LENGTH       32u
-#elif defined(PSA_WANT_KEY_TYPE_DES)
-#define PSA_CIPHER_MAX_KEY_LENGTH       24u
 #else
 #define PSA_CIPHER_MAX_KEY_LENGTH       0u
 #endif

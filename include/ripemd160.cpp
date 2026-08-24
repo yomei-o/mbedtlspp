@@ -11,19 +11,17 @@
  *  http://ehash.iaik.tugraz.at/wiki/RIPEMD-160
  */
 
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
 #if defined(MBEDTLS_RIPEMD160_C)
 
-#include "mbedtls_ripemd160.hpp"
+#include "mbedtls_private_ripemd160.hpp"
 #include "mbedtls_platform_util.hpp"
-#include "mbedtls_error.hpp"
+#include "mbedtls_private_error_common.hpp"
 
 #include <string.h>
 
 #include "mbedtls_platform.hpp"
-
-#if !defined(MBEDTLS_RIPEMD160_ALT)
 
 static inline void mbedtls_ripemd160_init(mbedtls_ripemd160_context *ctx)
 {
@@ -61,13 +59,11 @@ static inline int mbedtls_ripemd160_starts(mbedtls_ripemd160_context *ctx)
 
     return 0;
 }
-
-#if !defined(MBEDTLS_RIPEMD160_PROCESS_ALT)
 /*
  * Process one block
  */
-static inline int mbedtls_internal_ripemd160_process(mbedtls_ripemd160_context *ctx,
-                                       const unsigned char data[64])
+static inline  int mbedtls_internal_ripemd160_process(mbedtls_ripemd160_context *ctx,
+                                              const unsigned char data[64])
 {
     struct {
         uint32_t A, B, C, D, E, Ap, Bp, Cp, Dp, Ep, X[16];
@@ -261,8 +257,6 @@ static inline int mbedtls_internal_ripemd160_process(mbedtls_ripemd160_context *
     return 0;
 }
 
-#endif /* !MBEDTLS_RIPEMD160_PROCESS_ALT */
-
 /*
  * RIPEMD-160 process buffer
  */
@@ -367,8 +361,6 @@ exit:
     mbedtls_ripemd160_free(ctx);
     return ret;
 }
-
-#endif /* ! MBEDTLS_RIPEMD160_ALT */
 
 /*
  * output = RIPEMD-160( input buffer )

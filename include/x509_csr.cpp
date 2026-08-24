@@ -15,14 +15,14 @@
  *  http://www.itu.int/ITU-T/studygroups/com17/languages/X.690-0207.pdf
  */
 
-#include "common.hpp"
+#include "x509_internal.hpp"
 
 #if defined(MBEDTLS_X509_CSR_PARSE_C)
 
 #include "mbedtls_x509_csr.hpp"
-#include "x509_internal.hpp"
 #include "mbedtls_error.hpp"
 #include "mbedtls_oid.hpp"
+#include "x509_oid.hpp"
 #include "mbedtls_platform_util.hpp"
 
 #include <string.h>
@@ -115,7 +115,7 @@ static inline  int x509_csr_parse_extensions(mbedtls_x509_csr *csr,
         /*
          * Detect supported extensions and skip unsupported extensions
          */
-        ret = mbedtls_oid_get_x509_ext_type(&extn_oid, &ext_type);
+        ret = mbedtls_x509_oid_get_x509_ext_type(&extn_oid, &ext_type);
 
         if (ret != 0) {
             /* Give the callback (if any) a chance to handle the extension */
@@ -227,34 +227,25 @@ static inline  int x509_csr_parse_attributes(mbedtls_x509_csr *csr,
 
         /* Check that this is an extension-request attribute */
         if (MBEDTLS_OID_CMP(MBEDTLS_OID_PKCS9_CSR_EXT_REQ, &attr_oid) == 0) {
-            if ((ret = mbedtls_asn1_get_tag(p, end_attr_data, &len,
+            if ((ret = mbedtls_asn1_get_tag(p, end, &len,
                                             MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SET)) != 0) {
                 return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, ret);
             }
 
-            const unsigned char *end_set = *p + len;
-            if (end_set != end_attr_data) {
-                return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
-                                         MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
-            }
-
-            if ((ret = mbedtls_asn1_get_tag(p, end_set, &len,
+            if ((ret = mbedtls_asn1_get_tag(p, end, &len,
                                             MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) !=
                 0) {
                 return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS, ret);
             }
 
-            const unsigned char *end_exts = *p + len;
-            if (end_exts != end_set) {
+            if ((ret = x509_csr_parse_extensions(csr, p, *p + len, cb, p_ctx)) != 0) {
+                return ret;
+            }
+
+            if (*p != end_attr_data) {
                 return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
                                          MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
             }
-
-            if ((ret = x509_csr_parse_extensions(csr, p, end_exts, cb, p_ctx)) != 0) {
-                return ret;
-            }
-            /* x509_csr_parse_extensions() guarantees *p == end_exts
-             * on success */
         }
 
         *p = end_attr_data;
@@ -417,8 +408,7 @@ static inline  int mbedtls_x509_csr_parse_der_internal(mbedtls_x509_csr *csr,
     }
 
     if ((ret = mbedtls_x509_get_sig_alg(&csr->sig_oid, &sig_params,
-                                        &csr->sig_md, &csr->sig_pk,
-                                        &csr->sig_opts)) != 0) {
+                                        &csr->sig_md, &csr->sig_pk)) != 0) {
         mbedtls_x509_csr_free(csr);
         return MBEDTLS_ERR_X509_UNKNOWN_SIG_ALG;
     }
@@ -559,8 +549,7 @@ static inline int mbedtls_x509_csr_info(char *buf, size_t size, const char *pref
     ret = mbedtls_snprintf(p, n, "\n%ssigned using  : ", prefix);
     MBEDTLS_X509_SAFE_SNPRINTF;
 
-    ret = mbedtls_x509_sig_alg_gets(p, n, &csr->sig_oid, csr->sig_pk, csr->sig_md,
-                                    csr->sig_opts);
+    ret = mbedtls_x509_sig_alg_gets(p, n, &csr->sig_oid, csr->sig_pk, csr->sig_md);
     MBEDTLS_X509_SAFE_SNPRINTF;
 
     if ((ret = mbedtls_x509_key_size_helper(key_size_str, MBEDTLS_BEFORE_COLON,
@@ -632,10 +621,6 @@ static inline void mbedtls_x509_csr_free(mbedtls_x509_csr *csr)
     }
 
     mbedtls_pk_free(&csr->pk);
-
-#if defined(MBEDTLS_X509_RSASSA_PSS_SUPPORT)
-    mbedtls_free(csr->sig_opts);
-#endif
 
     mbedtls_asn1_free_named_data_list_shallow(csr->subject.next);
     mbedtls_asn1_sequence_free(csr->subject_alt_names.next);

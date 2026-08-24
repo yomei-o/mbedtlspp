@@ -5,7 +5,7 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.hpp"
+#include "ssl_misc.hpp"
 
 #if defined(MBEDTLS_TIMING_C)
 
@@ -13,8 +13,10 @@
 
 #if !defined(MBEDTLS_TIMING_ALT)
 
-#if !defined(_WIN32) && !defined(MBEDTLS_PLATFORM_IS_UNIXLIKE)
-#error "This module only works on Unix and Windows, see MBEDTLS_TIMING_C in mbedtls_config.h"
+#if !defined(unix) && !defined(__unix__) && !defined(__unix) && \
+    !defined(__APPLE__) && !defined(_WIN32) && !defined(__QNXNTO__) && \
+    !defined(__HAIKU__) && !defined(__midipix__)
+#error "This module only works on Unix and Windows, see mbedtls_TIMING_C in mbedtls_config.h"
 #endif
 
 #if defined(_WIN32) && !defined(EFIX64) && !defined(EFI32)

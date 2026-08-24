@@ -10,7 +10,7 @@
 #ifndef MBEDTLS_MD_PSA_H
 #define MBEDTLS_MD_PSA_H
 
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
 #include "mbedtls_md.hpp"
 #include "psa_crypto.hpp"

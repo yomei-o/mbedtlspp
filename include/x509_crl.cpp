@@ -15,12 +15,11 @@
  *  http://www.itu.int/ITU-T/studygroups/com17/languages/X.690-0207.pdf
  */
 
-#include "common.hpp"
+#include "x509_internal.hpp"
 
 #if defined(MBEDTLS_X509_CRL_PARSE_C)
 
 #include "mbedtls_x509_crl.hpp"
-#include "x509_internal.hpp"
 #include "mbedtls_error.hpp"
 #include "mbedtls_oid.hpp"
 #include "mbedtls_platform_util.hpp"
@@ -390,8 +389,7 @@ static inline int mbedtls_x509_crl_parse_der(mbedtls_x509_crl *chain,
     crl->version++;
 
     if ((ret = mbedtls_x509_get_sig_alg(&crl->sig_oid, &sig_params1,
-                                        &crl->sig_md, &crl->sig_pk,
-                                        &crl->sig_opts)) != 0) {
+                                        &crl->sig_md, &crl->sig_pk)) != 0) {
         mbedtls_x509_crl_free(crl);
         return MBEDTLS_ERR_X509_UNKNOWN_SIG_ALG;
     }
@@ -647,8 +645,7 @@ static inline int mbedtls_x509_crl_info(char *buf, size_t size, const char *pref
     ret = mbedtls_snprintf(p, n, "\n%ssigned using  : ", prefix);
     MBEDTLS_X509_SAFE_SNPRINTF;
 
-    ret = mbedtls_x509_sig_alg_gets(p, n, &crl->sig_oid, crl->sig_pk, crl->sig_md,
-                                    crl->sig_opts);
+    ret = mbedtls_x509_sig_alg_gets(p, n, &crl->sig_oid, crl->sig_pk, crl->sig_md);
     MBEDTLS_X509_SAFE_SNPRINTF;
 
     ret = mbedtls_snprintf(p, n, "\n");
@@ -677,10 +674,6 @@ static inline void mbedtls_x509_crl_free(mbedtls_x509_crl *crl)
     mbedtls_x509_crl_entry *entry_prv;
 
     while (crl_cur != NULL) {
-#if defined(MBEDTLS_X509_RSASSA_PSS_SUPPORT)
-        mbedtls_free(crl_cur->sig_opts);
-#endif
-
         mbedtls_asn1_free_named_data_list_shallow(crl_cur->issuer.next);
 
         entry_cur = crl_cur->entry.next;

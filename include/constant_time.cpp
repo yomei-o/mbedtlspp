@@ -10,14 +10,15 @@
  * might be translated to branches by some compilers on some platforms.
  */
 
-#include "common.hpp"
+#include <stdint.h>
+#include <limits.h>
+
+#include "tf_psa_crypto_common.hpp"
 #include "constant_time_internal.hpp"
 #include "mbedtls_constant_time.hpp"
-#include "mbedtls_error.hpp"
+#include "mbedtls_private_error_common.hpp"
 #include "mbedtls_platform_util.hpp"
 
-#include <limits.h>
-#include <stdint.h>
 #include <string.h>
 
 #if !defined(MBEDTLS_CT_ASM)
@@ -145,7 +146,7 @@ static inline int mbedtls_ct_memcmp_partial(const void *a,
 
 #endif
 
-#if defined(MBEDTLS_PKCS1_V15) && defined(MBEDTLS_RSA_C) && !defined(MBEDTLS_RSA_ALT)
+#if defined(MBEDTLS_PKCS1_V15) && defined(MBEDTLS_RSA_C)
 
 static inline void mbedtls_ct_memmove_left(void *start, size_t total, size_t offset)
 {
@@ -164,7 +165,7 @@ static inline void mbedtls_ct_memmove_left(void *start, size_t total, size_t off
     }
 }
 
-#endif /* MBEDTLS_PKCS1_V15 && MBEDTLS_RSA_C && ! MBEDTLS_RSA_ALT */
+#endif /* MBEDTLS_PKCS1_V15 && MBEDTLS_RSA_C */
 
 static inline void mbedtls_ct_memcpy_if(mbedtls_ct_condition_t condition,
                           unsigned char *dest,
@@ -226,7 +227,7 @@ static inline void mbedtls_ct_memcpy_offset(unsigned char *dest,
     }
 }
 
-#if defined(MBEDTLS_PKCS1_V15) && defined(MBEDTLS_RSA_C) && !defined(MBEDTLS_RSA_ALT)
+#if defined(MBEDTLS_PKCS1_V15) && defined(MBEDTLS_RSA_C)
 
 static inline void mbedtls_ct_zeroize_if(mbedtls_ct_condition_t condition, void *buf, size_t len)
 {
@@ -244,4 +245,4 @@ static inline void mbedtls_ct_zeroize_if(mbedtls_ct_condition_t condition, void 
     }
 }
 
-#endif /* defined(MBEDTLS_PKCS1_V15) && defined(MBEDTLS_RSA_C) && !defined(MBEDTLS_RSA_ALT) */
+#endif /* defined(MBEDTLS_PKCS1_V15) && defined(MBEDTLS_RSA_C) */

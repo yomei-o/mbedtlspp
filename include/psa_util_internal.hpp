@@ -16,6 +16,12 @@
 
 #include "psa_crypto.hpp"
 
+#if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
+
+#include "mbedtls_private_ecp.hpp"
+
+#endif /* PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY */
+
 #if defined(MBEDTLS_PSA_CRYPTO_CLIENT)
 
 /*************************************************************************
@@ -60,18 +66,13 @@ typedef struct {
 //static inline  const mbedtls_error_pair_t psa_to_lms_errors[3];
 #endif
 
-#if defined(MBEDTLS_USE_PSA_CRYPTO) || defined(MBEDTLS_SSL_PROTO_TLS1_3)
-//static inline  const mbedtls_error_pair_t psa_to_ssl_errors[7];
-#endif
-
 #if defined(PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY) ||    \
     defined(PSA_WANT_KEY_TYPE_RSA_KEY_PAIR_BASIC)
 //static inline  const mbedtls_error_pair_t psa_to_pk_rsa_errors[8];
 #endif
 
-#if defined(MBEDTLS_USE_PSA_CRYPTO) && \
-    defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
-//static inline  const mbedtls_error_pair_t psa_to_pk_ecdsa_errors[7];
+#if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
+extern const mbedtls_error_pair_t psa_to_pk_ecdsa_errors[7];
 #endif
 
 /* Generic fallback function for error translation,
@@ -97,4 +98,35 @@ static inline int psa_pk_status_to_mbedtls(psa_status_t status);
                           fallback_f)
 
 #endif /* MBEDTLS_PSA_CRYPTO_CLIENT */
+#if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
+/** Convert an ECC curve identifier from the Mbed TLS encoding to PSA.
+ *
+ * \param grpid         An Mbed TLS elliptic curve identifier
+ *                      (`MBEDTLS_ECP_DP_xxx`).
+ * \param[out] bits     On success the bit size of the curve; 0 on failure.
+ *
+ * \return              If the curve is supported in the PSA API, this function
+ *                      returns the proper PSA curve identifier
+ *                      (`PSA_ECC_FAMILY_xxx`). This holds even if the curve is
+ *                      not supported by the ECP module.
+ * \return              \c 0 if the curve is not supported in the PSA API.
+ */
+static inline psa_ecc_family_t mbedtls_ecc_group_to_psa(mbedtls_ecp_group_id grpid,
+                                          size_t *bits);
+
+/** Convert an ECC curve identifier from the PSA encoding to Mbed TLS.
+ *
+ * \param family        A PSA elliptic curve family identifier
+ *                      (`PSA_ECC_FAMILY_xxx`).
+ * \param bits          The bit-length of a private key on \p curve.
+ *
+ * \return              If the curve is supported in the PSA API, this function
+ *                      returns the corresponding Mbed TLS elliptic curve
+ *                      identifier (`MBEDTLS_ECP_DP_xxx`).
+ * \return              #MBEDTLS_ECP_DP_NONE if the combination of \c curve
+ *                      and \p bits is not supported.
+ */
+static inline mbedtls_ecp_group_id mbedtls_ecc_group_from_psa(psa_ecc_family_t family,
+                                                size_t bits);
+#endif /* PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY */
 #endif /* MBEDTLS_PSA_UTIL_INTERNAL_H */

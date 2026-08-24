@@ -16,16 +16,15 @@
 #endif
 
 #if defined(MBEDTLS_AESCE_ARCH_IS_ARMV8_A) && !defined(__ARM_FEATURE_CRYPTO)
-/* The intrinsic declaration are guarded by predefined ACLE macros in clang:
+/* TODO: Re-consider above after https://reviews.llvm.org/D131064 merged.
+ *
+ * The intrinsic declaration are guarded by predefined ACLE macros in clang:
  * these are normally only enabled by the -march option on the command line.
  * By defining the macros ourselves we gain access to those declarations without
  * requiring -march on the command line.
  *
- * `arm_neon.h` is included by common.h, so we put these defines
- * at the top of this file, before any includes. This is necessary with
- * Clang <=15.x. With Clang 16.0 and above, these macro definitions are
- * no longer required, but they're harmless. See
- * https://reviews.llvm.org/D131064
+ * `arm_neon.h` is included by tf_psa_crypto_common.h, so we put these defines
+ * at the top of this file, before any includes.
  */
 #define __ARM_FEATURE_CRYPTO 1
 /* See: https://arm-software.github.io/acle/main/acle.html#cryptographic-extensions
@@ -39,11 +38,10 @@
 
 #endif /* defined(__clang__) &&  (__clang_major__ >= 4) */
 
-#include "common.hpp"
+#include <string.h>
+#include "tf_psa_crypto_common.hpp"
 
 #if defined(MBEDTLS_AESCE_C)
-
-#include <string.h>
 
 #include "aesce.hpp"
 
@@ -88,11 +86,7 @@
 #           define MBEDTLS_POP_TARGET_PRAGMA
 #       endif
 #   elif defined(__clang__)
-#       if __clang_major__ < 7
-#           pragma clang attribute push (__attribute__((target("crypto"))), apply_to=function)
-#       else
-#           pragma clang attribute push (__attribute__((target("aes"))), apply_to=function)
-#       endif
+#       pragma clang attribute push (__attribute__((target("aes"))), apply_to=function)
 #       define MBEDTLS_POP_TARGET_PRAGMA
 #   elif defined(__GNUC__)
 #       pragma GCC push_options

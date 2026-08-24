@@ -20,11 +20,12 @@
 #define _GNU_SOURCE
 #endif
 
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
 #include "mbedtls_platform_util.hpp"
 #include "mbedtls_platform.hpp"
 #include "mbedtls_threading.hpp"
+#include "mbedtls_private_error_common.hpp"
 
 #include <stddef.h>
 
@@ -147,9 +148,12 @@ static inline void mbedtls_zeroize_and_free(void *buf, size_t len)
 
 #if defined(MBEDTLS_HAVE_TIME_DATE) && !defined(MBEDTLS_PLATFORM_GMTIME_R_ALT)
 #include <time.h>
-#if defined(MBEDTLS_PLATFORM_IS_UNIXLIKE)
+#if !defined(_WIN32) && (defined(unix) || \
+    defined(__unix) || defined(__unix__) || (defined(__APPLE__) && \
+    defined(__MACH__)) || defined(__midipix__))
 #include <unistd.h>
-#endif
+#endif /* !_WIN32 && (unix || __unix || __unix__ ||
+        * (__APPLE__ && __MACH__) || __midipix__) */
 
 #if !((defined(_POSIX_VERSION) && _POSIX_VERSION >= 200809L) ||     \
     (defined(_POSIX_THREAD_SAFE_FUNCTIONS) &&                     \
@@ -215,10 +219,12 @@ static inline void (*mbedtls_test_hook_test_fail)(const char *, int, const char 
 #if defined(MBEDTLS_HAVE_TIME) && !defined(MBEDTLS_PLATFORM_MS_TIME_ALT)
 
 #include <time.h>
-#if defined(MBEDTLS_PLATFORM_IS_UNIXLIKE)
+#if !defined(_WIN32) && \
+    (defined(unix) || defined(__unix) || defined(__unix__) || \
+    (defined(__APPLE__) && defined(__MACH__)) || defined(__HAIKU__) || defined(__midipix__))
 #include <unistd.h>
-#endif
-
+#endif \
+    /* !_WIN32 && (unix || __unix || __unix__ || (__APPLE__ && __MACH__) || __HAIKU__ || __midipix__) */
 #if (defined(_POSIX_VERSION) && _POSIX_VERSION >= 199309L) || defined(__HAIKU__)
 static inline mbedtls_ms_time_t mbedtls_ms_time(void)
 {
@@ -256,3 +262,197 @@ static inline mbedtls_ms_time_t mbedtls_ms_time(void)
 #error "No mbedtls_ms_time available"
 #endif
 #endif /* MBEDTLS_HAVE_TIME && !MBEDTLS_PLATFORM_MS_TIME_ALT */
+
+#if defined(MBEDTLS_PSA_BUILTIN_GET_ENTROPY)
+
+#if !defined(unix) && !defined(__unix__) && !defined(__unix) && \
+    !defined(__APPLE__) && !defined(_WIN32) && !defined(__QNXNTO__) && \
+    !defined(__HAIKU__) && !defined(__midipix__) && !defined(__MVS__)
+#error \
+    "The built-in entropy sources only work on Unix and Windows. " \
+    "Please enable mbedtls_PSA_DRIVER_GET_ENTROPY instead of " \
+    "mbedtls_PSA_BUILTIN_GET_ENTROPY and implement " \
+    "mbedtls_platform_get_entropy()."
+#endif
+
+#include "mbedtls_private_entropy.hpp"
+
+#if defined(_WIN32) && !defined(EFIX64) && !defined(EFI32)
+
+#include <windows.h>
+#include <bcrypt.h>
+#include <intsafe.h>
+
+static inline int mbedtls_platform_get_entropy(psa_driver_get_entropy_flags_t flags,
+                                 size_t *estimate_bits,
+                                 unsigned char *output, size_t output_size)
+{
+    /* We don't implement any flags yet. */
+    if (flags != 0) {
+        return PSA_ERROR_NOT_SUPPORTED;
+    }
+
+    /*
+     * BCryptGenRandom takes ULONG for size, which is smaller than size_t on
+     * 64-bit Windows platforms.
+     */
+    if (output_size > ULONG_MAX) {
+        return MBEDTLS_ERR_ENTROPY_SOURCE_FAILED;
+    }
+
+    if (!BCRYPT_SUCCESS(BCryptGenRandom(NULL, output, (unsigned long) output_size,
+                                        BCRYPT_USE_SYSTEM_PREFERRED_RNG))) {
+        return MBEDTLS_ERR_ENTROPY_SOURCE_FAILED;
+    }
+
+    *estimate_bits = 8 * output_size;
+
+    return 0;
+}
+#else /* _WIN32 && !EFIX64 && !EFI32 */
+
+#if defined(__linux__) || defined(__midipix__)
+/* Ensure that syscall() is available even when compiling with -std=c99 */
+#if !defined(_GNU_SOURCE)
+#define _GNU_SOURCE
+#endif
+#if !defined(__USE_MISC)
+#define __USE_MISC
+#endif
+#endif
+
+/*
+ * Test for Linux getrandom() support.
+ * Since there is no wrapper in the libc yet, use the generic syscall wrapper
+ * available in GNU libc and compatible libc's (eg uClibc).
+ */
+#if ((defined(__linux__) && defined(__GLIBC__)) || defined(__midipix__))
+#include <unistd.h>
+#include <sys/syscall.h>
+#if defined(SYS_getrandom)
+#define HAVE_GETRANDOM
+#include <errno.h>
+
+static inline  int getrandom_wrapper(void *buf, size_t buflen, unsigned int flags)
+{
+    /* MemSan cannot understand that the syscall writes to the buffer */
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+    memset(buf, 0, buflen);
+#endif
+#endif
+    return (int) syscall(SYS_getrandom, buf, buflen, flags);
+}
+#endif /* SYS_getrandom */
+#endif /* __linux__ || __midipix__ */
+
+#if defined(__FreeBSD__) || defined(__DragonFly__)
+#include <sys/param.h>
+#if (defined(__FreeBSD__) && __FreeBSD_version >= 1200000) || \
+    (defined(__DragonFly__) && __DragonFly_version >= 500700)
+#include <errno.h>
+#include <sys/random.h>
+#define HAVE_GETRANDOM
+static inline  int getrandom_wrapper(void *buf, size_t buflen, unsigned int flags)
+{
+    return (int) getrandom(buf, buflen, flags);
+}
+#endif /* (__FreeBSD__ && __FreeBSD_version >= 1200000) ||
+          (__DragonFly__ && __DragonFly_version >= 500700) */
+#endif /* __FreeBSD__ || __DragonFly__ */
+
+/*
+ * Some BSD systems provide KERN_ARND.
+ * This is equivalent to reading from /dev/urandom, only it doesn't require an
+ * open file descriptor, and provides up to 256 bytes per call (basically the
+ * same as getentropy(), but with a longer history).
+ *
+ * Documentation: https://netbsd.gw.com/cgi-bin/man-cgi?sysctl+7
+ */
+#if (defined(__FreeBSD__) || defined(__NetBSD__)) && !defined(HAVE_GETRANDOM)
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#if defined(KERN_ARND)
+#define HAVE_SYSCTL_ARND
+
+static inline  int sysctl_arnd_wrapper(unsigned char *buf, size_t buflen)
+{
+    int name[2];
+    size_t len;
+
+    name[0] = CTL_KERN;
+    name[1] = KERN_ARND;
+
+    while (buflen > 0) {
+        len = buflen > 256 ? 256 : buflen;
+        if (sysctl(name, 2, buf, &len, NULL, 0) == -1) {
+            return -1;
+        }
+        buflen -= len;
+        buf += len;
+    }
+    return 0;
+}
+#endif /* KERN_ARND */
+#endif /* __FreeBSD__ || __NetBSD__ */
+
+#include <stdio.h>
+
+static inline int mbedtls_platform_get_entropy(psa_driver_get_entropy_flags_t flags,
+                                 size_t *estimate_bits,
+                                 unsigned char *output, size_t output_size)
+{
+    FILE *file;
+    size_t read_len;
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+
+    /* We don't implement any flags yet. */
+    if (flags != 0) {
+        return PSA_ERROR_NOT_SUPPORTED;
+    }
+
+#if defined(HAVE_GETRANDOM)
+    ret = getrandom_wrapper(output, output_size, 0);
+    if (ret >= 0) {
+        *estimate_bits = 8 * (size_t) ret;
+        return 0;
+    } else if (errno != ENOSYS) {
+        return MBEDTLS_ERR_ENTROPY_SOURCE_FAILED;
+    }
+    /* Fall through if the system call isn't known. */
+#else
+    ((void) ret);
+#endif /* HAVE_GETRANDOM */
+
+#if defined(HAVE_SYSCTL_ARND)
+    ((void) file);
+    ((void) read_len);
+    if (sysctl_arnd_wrapper(output, output_size) == -1) {
+        return MBEDTLS_ERR_ENTROPY_SOURCE_FAILED;
+    }
+    *estimate_bits = 8 * output_size;
+    return 0;
+#else
+
+    file = fopen("/dev/urandom", "rb");
+    if (file == NULL) {
+        return MBEDTLS_ERR_ENTROPY_SOURCE_FAILED;
+    }
+
+    /* Ensure no stdio buffering of secrets, as such buffers cannot be wiped. */
+    mbedtls_setbuf(file, NULL);
+
+    read_len = fread(output, 1, output_size, file);
+    if (read_len != output_size) {
+        fclose(file);
+        return MBEDTLS_ERR_ENTROPY_SOURCE_FAILED;
+    }
+
+    fclose(file);
+    *estimate_bits = 8 * output_size;
+
+    return 0;
+#endif /* HAVE_SYSCTL_ARND */
+}
+#endif /* _WIN32 && !EFIX64 && !EFI32 */
+#endif /* MBEDTLS_PSA_BUILTIN_GET_ENTROPY */

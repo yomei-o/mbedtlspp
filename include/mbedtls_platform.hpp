@@ -27,11 +27,13 @@
 #define MBEDTLS_PLATFORM_H
 #include "mbedtls_private_access.hpp"
 
-#include "mbedtls_build_info.hpp"
+#include "tf-psa-crypto_build_info.hpp"
 
 #if defined(MBEDTLS_HAVE_TIME)
 #include "mbedtls_platform_time.hpp"
 #endif
+
+#include <psa_crypto_driver_random.hpp>
 
 // #ifdef __cplusplus
 // extern "C" {
@@ -385,37 +387,6 @@ static inline int mbedtls_platform_set_exit(void (*exit_func)(int status));
 #define MBEDTLS_EXIT_FAILURE 1
 #endif
 
-#if defined(MBEDTLS_ENTROPY_C) && \
-    !defined(MBEDTLS_NO_PLATFORM_ENTROPY) && \
-    !(defined(_WIN32) && !defined(EFIX64) && !defined(EFI32))
-/* Platforms where MBEDTLS_PLATFORM_DEV_RANDOM is used
- * unless a dedicated system call is available both at
- * compile time and at run time. */
-#define MBEDTLS_PLATFORM_HAVE_DEV_RANDOM
-#endif
-
-#if !defined(MBEDTLS_PLATFORM_DEV_RANDOM)
-#define MBEDTLS_PLATFORM_DEV_RANDOM "/dev/random"
-#endif
-
-/* Arrange for mbedtls_platform_dev_random to always be visible to
- * Doxygen, because it's linked from the documentation of
- * MBEDTLS_PLATFORM_DEV_RANDOM and that documentation can be visible
- * even in configurations where it isn't used. */
-#if defined(MBEDTLS_PLATFORM_HAVE_DEV_RANDOM) || defined(__DOXYGEN__)
-/**
- * Path to a special file that returns cryptographic-quality random bytes
- * when read.
- *
- * This variable is only declared on platforms where it is used.
- * It is available when the macro `MBEDTLS_PLATFORM_HAVE_DEV_RANDOM` is defined.
- *
- * The default value is #MBEDTLS_PLATFORM_DEV_RANDOM.
- * See the documentation of this option for guidance.
- */
-extern const char *mbedtls_platform_dev_random;
-#endif
-
 /*
  * The function pointers for reading from and writing a seed file to
  * Non-Volatile storage (NV) in a platform-independent way
@@ -476,6 +447,45 @@ mbedtls_platform_context;
 #else
 #include "platform_alt.hpp"
 #endif /* !MBEDTLS_PLATFORM_SETUP_TEARDOWN_ALT */
+
+/**
+ * \brief       User defined callback function that is used from the entropy
+ *              module to gather entropy data from some hardware device.
+ *
+ * \param flags                 A mask of `PSA_DRIVER_GET_ENTROPY_xxx` flags.
+ *                              As of TF-PSA-Crypto 1.0, this is always \c 0.
+ * \param[out] estimate_bits    Measure of the entropy content (in bits) of the
+ *                              data written in the \p output buffer.
+ * \param[out] output           Output buffer where the entropy data will be
+ *                              stored.
+ * \param output_size           Size of the \p output buffer in bytes.
+ *
+ * \retval 0
+ *         Success.
+ * \retval #PSA_ERROR_INSUFFICIENT_ENTROPY
+ *         The entropy source failed.
+ * \retval #PSA_ERROR_NOT_SUPPORTED
+ *         The value of \p flags is not supported.
+ *
+ * \warning     For the time being TF-PSA-Crypto only supports implementations
+ *              that return a maximum entropy output on each call, i.e.
+ *              \p estimate_bits = `8 * output_size`. Returning a smaller
+ *              entropy content is the same as returning
+ *              #PSA_ERROR_INSUFFICIENT_ENTROPY so the hardware polling will
+ *              fail.
+ *              In the future TF-PSA-Crypto will be smarter and capable to cope
+ *              with entropy sources with lower entropy content (i.e.
+ *              0 < \p estimate_bits < 8 * output_size) by calling the callback
+ *              function in loop.
+ *
+ * \note        This function is not meant to be called by application code, and
+ *              it is not guaranteed that this function will exist or will behave
+ *              in the same way in future versions of the library. Applications
+ *              should call psa_generate_random() to obtain random data.
+ */
+static inline int mbedtls_platform_get_entropy(psa_driver_get_entropy_flags_t flags,
+                                 size_t *estimate_bits,
+                                 unsigned char *output, size_t output_size);
 
 /**
  * \brief   This function performs any platform-specific initialization

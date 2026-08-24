@@ -4,13 +4,7 @@
  *  This interface should only be used by the legacy bignum module (bignum.h)
  *  and the modular bignum modules (bignum_mod.c, bignum_mod_raw.c). All other
  *  modules should use the high-level modular bignum interface (bignum_mod.h)
- *  or the legacy bignum interface (bignum.h). The only exceptions are:
- *  1. In ecp_curves.c, some mbedtls_ecp_mod_pXXX_raw() functions are using
- *  bignum_core functions. That's because those functions are implementing a
- *  part of bignum_mod: the optimized reduction in mbedtls_mpi_mod_modulus.
- *  2. In ecp.c, ecp_modp() is currently using bignum_core, while the rest of
- *  the module is using legacy bignum. That's transitional; eventually ecp.c is
- *  going to use bignum_mod_raw.
+ *  or the legacy bignum interface (bignum.h).
  *
  * This module is about processing non-negative integers with a fixed upper
  * bound that's of the form 2^n-1 where n is a multiple of #biL.
@@ -74,9 +68,9 @@
 #ifndef MBEDTLS_BIGNUM_CORE_H
 #define MBEDTLS_BIGNUM_CORE_H
 
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
-#include "mbedtls_bignum.hpp"
+#include "mbedtls_private_bignum.hpp"
 
 #include "constant_time_internal.hpp"
 
@@ -408,6 +402,9 @@ static inline mbedtls_mpi_uint mbedtls_mpi_core_add_if(mbedtls_mpi_uint *X,
  * \p X may be aliased to \p A or \p B, or even both, but may not overlap
  * either otherwise.
  *
+ * This function operates in constant time with respect to the values
+ * of \p A and \p B.
+ *
  * \param[out] X    The result of the subtraction.
  * \param[in] A     Little-endian presentation of left operand.
  * \param[in] B     Little-endian presentation of right operand.
@@ -428,6 +425,9 @@ static inline mbedtls_mpi_uint mbedtls_mpi_core_sub(mbedtls_mpi_uint *X,
  * otherwise overlap.
  *
  * This function operates modulo `2^(biL*X_limbs)`.
+ *
+ * This function operates in constant time with respect to the values
+ * of \p X and \p A and \p b.
  *
  * \param[in,out] X  The pointer to the (little-endian) array
  *                   representing the bignum to accumulate onto.
@@ -487,6 +487,10 @@ static inline mbedtls_mpi_uint mbedtls_mpi_core_montmul_init(const mbedtls_mpi_u
  *
  * \p A and \p B may alias each other, if \p AN_limbs == \p B_limbs. They may
  * not alias \p N (since they must be in canonical form, they cannot == \p N).
+ *
+ * This function operates in constant time with respect
+ * to the values of \p A, \p B and \p N.
+ *
  *
  * \param[out]    X         The destination MPI, as a little-endian array of
  *                          length \p AN_limbs.
@@ -678,6 +682,9 @@ static inline void mbedtls_mpi_core_exp_mod_unsafe(mbedtls_mpi_uint *X,
  *
  * \p X may be aliased to \p A, but not to \p RR or \p E, even if \p E_limbs ==
  * \p AN_limbs.
+ *
+ * This function operates in constant time with respect
+ * to the values of \p A, \p N and \p E.
  *
  * \param[out] X     The destination MPI, as a little endian array of length
  *                   \p AN_limbs.

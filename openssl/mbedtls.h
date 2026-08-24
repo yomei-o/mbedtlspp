@@ -593,7 +593,13 @@ struct SSL_CTX
         // OPTIONAL is not optimal for security, but makes interop easier in this simplified example
         mbedtls_ssl_conf_authmode(&conf_, MBEDTLS_SSL_VERIFY_OPTIONAL); // SSL_set_verify will set it to REQUIRED if needed
         //mbedtls_ssl_conf_ca_chain(&conf_, &cacert, NULL);
+#if MBEDTLS_VERSION_MAJOR >= 4
+        // mbedtls 4.x takes its randomness from PSA, which has to be up
+        // before any TLS context is used; there is no conf_rng any more.
+        psa_crypto_init();
+#else
         mbedtls_ssl_conf_rng(&conf_, mbedtls_ctr_drbg_random, &ctr_drbg);
+#endif
 
 #if MBEDTLS_DEBUG_OUTPUT_LEVEL // if you want additional mbetls debug output
         mbedtls_ssl_conf_dbg(&conf_, &SSL_CTX::my_debug, stdout);
@@ -694,7 +700,11 @@ int SSL_CTX_use_certificate_file(SSL_CTX* ctx, const char* file, int type)
 
 int SSL_CTX_use_PrivateKey_file(SSL_CTX* ctx, const char* file, int type)
 {
+#if MBEDTLS_VERSION_MAJOR >= 4
+    if (mbedtls_pk_parse_keyfile(&ctx->pkey, file, NULL) == 0)
+#else
     if (mbedtls_pk_parse_keyfile(&ctx->pkey, file, NULL, mbedtls_ctr_drbg_random, &ctx->ctr_drbg) == 0)
+#endif
     {
         return (mbedtls_ssl_conf_own_cert(&ctx->conf_, &ctx->crt, &ctx->pkey) == 0) ? 1 : 0;
     }
@@ -775,9 +785,14 @@ int SSL_CTX_use_PrivateKey(SSL_CTX* ctx, EVP_PKEY* pkey)
         const unsigned char* pwd = pkey->passwd.empty()
                                        ? NULL
                                        : (const unsigned char*)pkey->passwd.c_str();
+#if MBEDTLS_VERSION_MAJOR >= 4
+        if (mbedtls_pk_parse_key(&ctx->pkey, &buf[0], buf.size(), pwd,
+                                 pkey->passwd.size()) == 0)
+#else
         if (mbedtls_pk_parse_key(&ctx->pkey, &buf[0], buf.size(), pwd,
                                  pkey->passwd.size(), mbedtls_ctr_drbg_random,
                                  &ctx->ctr_drbg) == 0)
+#endif
         {
             return (mbedtls_ssl_conf_own_cert(&ctx->conf_, &ctx->crt, &ctx->pkey) == 0) ? 1 : 0;
         }
@@ -802,7 +817,7 @@ long SSL_CTX_set_options(SSL_CTX* ctx, long options) // only for server
 # define TLS1_2_VERSION                  0x0303
 int SSL_CTX_set_min_proto_version(SSL_CTX* ctx, int version) // only for server
 {
-    mbedtls_ssl_conf_min_version(&ctx->conf_, MBEDTLS_SSL_MAJOR_VERSION_3, MBEDTLS_SSL_MINOR_VERSION_3);
+    mbedtls_ssl_conf_min_tls_version(&ctx->conf_, MBEDTLS_SSL_VERSION_TLS1_2);
 
     return 1;
 }
@@ -908,7 +923,10 @@ int SSL_write(SSL* ssl, const void* buf, int num) {
 
     // use mbedtls_net_send ?
 
-    ssl->last_error = mbedtls_ssl_write(&ssl->mbedtls_ctx, (const unsigned char*)buf, num);
+    do {
+        ssl->last_error = mbedtls_ssl_write(&ssl->mbedtls_ctx, (const unsigned char*)buf, num);
+    } while (ssl->last_error == MBEDTLS_ERR_SSL_WANT_READ ||
+             ssl->last_error == MBEDTLS_ERR_SSL_WANT_WRITE);
     return ssl->last_error;
 }
 
@@ -923,7 +941,14 @@ int SSL_read(SSL* ssl, void* buf, int num)
     // use mbedtls_net_recv ?
     // TODO: match SSL_ERROR_SYSCALL error code to mbedtls
 
-    ssl->last_error = mbedtls_ssl_read(&ssl->mbedtls_ctx, (unsigned char*)buf, num);
+    // A TLS 1.3 server may send a NewSessionTicket at any point after the
+    // handshake. mbedtls hands that to the caller instead of swallowing it,
+    // so read again rather than reporting it to httplib as a failure.
+    do {
+        ssl->last_error = mbedtls_ssl_read(&ssl->mbedtls_ctx, (unsigned char*)buf, num);
+    } while (ssl->last_error == MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET ||
+             ssl->last_error == MBEDTLS_ERR_SSL_WANT_READ ||
+             ssl->last_error == MBEDTLS_ERR_SSL_WANT_WRITE);
     return ssl->last_error;
 }
 

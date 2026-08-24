@@ -5,7 +5,7 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
 #if defined(MBEDTLS_MEMORY_BUFFER_ALLOC_C)
 #include "mbedtls_memory_buffer_alloc.hpp"
@@ -294,9 +294,7 @@ static inline  void *buffer_alloc_calloc(size_t n, size_t size)
     }
 
     p = ((unsigned char *) cur) + sizeof(memory_header) + len;
-    /* Double casting is required to prevent compilation warning on Clang-based
-     * compilers when "-Wcast-align" is used. */
-    new = (memory_header *) (void *) p;
+    new = (memory_header *) p;
 
     new->size = cur->size - len - sizeof(memory_header);
     new->alloc = 0;
@@ -377,9 +375,7 @@ static inline  void buffer_alloc_free(void *ptr)
     }
 
     p -= sizeof(memory_header);
-    /* Double casting is required to prevent compilation warning on Clang-based
-     * compilers when "-Wcast-align" is used. */
-    hdr = (memory_header *) (void *) p;
+    hdr = (memory_header *) p;
 
     if (verify_header(hdr) != 0) {
         mbedtls_exit(1);
@@ -590,9 +586,7 @@ static inline void mbedtls_memory_buffer_alloc_init(unsigned char *buf, size_t l
     heap.buf = buf;
     heap.len = len;
 
-    /* Double casting is required to prevent compilation warning on Clang-based
-     * compilers when "-Wcast-align" is used. */
-    heap.first = (memory_header *) (void *) buf;
+    heap.first = (memory_header *) buf;
     heap.first->size = len - sizeof(memory_header);
     heap.first->magic1 = MAGIC1;
     heap.first->magic2 = MAGIC2;

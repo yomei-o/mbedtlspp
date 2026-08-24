@@ -10,15 +10,16 @@
  *  https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-90r.pdf
  */
 
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
 #if defined(MBEDTLS_CTR_DRBG_C)
 
 #include "ctr.hpp"
-#include "mbedtls_ctr_drbg.hpp"
+#include "mbedtls_private_ctr_drbg.hpp"
 #include "mbedtls_platform_util.hpp"
-#include "mbedtls_error.hpp"
+#include "mbedtls_private_error_common.hpp"
 
+#include <limits.h>
 #include <string.h>
 
 #if defined(MBEDTLS_FS_IO)
@@ -83,7 +84,7 @@ static inline void mbedtls_ctr_drbg_init(mbedtls_ctr_drbg_context *ctx)
      * See mbedtls_ctr_drbg_set_nonce_len(). */
     ctx->reseed_counter = -1;
 
-    ctx->reseed_interval = MBEDTLS_CTR_DRBG_RESEED_INTERVAL;
+    ctx->reseed_interval = MBEDTLS_PSA_RNG_RESEED_INTERVAL;
 }
 
 /*
@@ -108,7 +109,7 @@ static inline void mbedtls_ctr_drbg_free(mbedtls_ctr_drbg_context *ctx)
     mbedtls_aes_free(&ctx->aes_ctx);
 #endif
     mbedtls_platform_zeroize(ctx, sizeof(mbedtls_ctr_drbg_context));
-    ctx->reseed_interval = MBEDTLS_CTR_DRBG_RESEED_INTERVAL;
+    ctx->reseed_interval = MBEDTLS_PSA_RNG_RESEED_INTERVAL;
     ctx->reseed_counter = -1;
 }
 
@@ -494,7 +495,7 @@ static inline  int mbedtls_ctr_drbg_reseed_internal(mbedtls_ctr_drbg_context *ct
     if ((ret = ctr_drbg_update_internal(ctx, seed)) != 0) {
         goto exit;
     }
-    ctx->reseed_counter = 0;
+    ctx->reseed_counter = 1;
 
 exit:
     mbedtls_platform_zeroize(seed, sizeof(seed));
@@ -629,7 +630,7 @@ static inline int mbedtls_ctr_drbg_random_with_add(void *p_rng,
 
     memset(locals.add_input, 0, MBEDTLS_CTR_DRBG_SEEDLEN);
 
-    if (ctx->reseed_counter >= ctx->reseed_interval ||
+    if (ctx->reseed_counter > ctx->reseed_interval ||
         ctx->prediction_resistance) {
         if ((ret = mbedtls_ctr_drbg_reseed(ctx, additional, add_len)) != 0) {
             return ret;

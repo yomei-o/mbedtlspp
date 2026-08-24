@@ -14,13 +14,13 @@
  * RFC 5116 "An Interface and Algorithms for Authenticated Encryption"
  */
 
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
 #if defined(MBEDTLS_CCM_C)
 
-#include "mbedtls_ccm.hpp"
+#include "mbedtls_private_ccm.hpp"
 #include "mbedtls_platform_util.hpp"
-#include "mbedtls_error.hpp"
+#include "mbedtls_private_error_common.hpp"
 #include "mbedtls_constant_time.hpp"
 
 #if defined(MBEDTLS_BLOCK_CIPHER_C)
@@ -37,9 +37,6 @@
 #define mbedtls_printf printf
 #endif /* MBEDTLS_SELF_TEST && MBEDTLS_AES_C */
 #endif /* MBEDTLS_PLATFORM_C */
-
-#if !defined(MBEDTLS_CCM_ALT)
-
 
 /*
  * Initialize context
@@ -177,7 +174,6 @@ static inline  int ccm_calculate_first_block_if_ready(mbedtls_ccm_context *ctx)
             ctx->plaintext_len = 0;
             return 0;
         } else {
-            ctx->state |= CCM_STATE__ERROR;
             return MBEDTLS_ERR_CCM_BAD_INPUT;
         }
     }
@@ -481,23 +477,11 @@ static inline int mbedtls_ccm_finish(mbedtls_ccm_context *ctx,
         return MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     }
 
-    if (!(ctx->state & CCM_STATE__STARTED)) {
-        return MBEDTLS_ERR_CCM_BAD_INPUT;
-    }
-
-    if (!(ctx->state & CCM_STATE__LENGTHS_SET)) {
-        return MBEDTLS_ERR_CCM_BAD_INPUT;
-    }
-
     if (ctx->add_len > 0 && !(ctx->state & CCM_STATE__AUTH_DATA_FINISHED)) {
         return MBEDTLS_ERR_CCM_BAD_INPUT;
     }
 
     if (ctx->plaintext_len > 0 && ctx->processed != ctx->plaintext_len) {
-        return MBEDTLS_ERR_CCM_BAD_INPUT;
-    }
-
-    if (tag_len != ctx->tag_len) {
         return MBEDTLS_ERR_CCM_BAD_INPUT;
     }
 
@@ -640,7 +624,6 @@ static inline int mbedtls_ccm_auth_decrypt(mbedtls_ccm_context *ctx, size_t leng
                             iv, iv_len, add, add_len,
                             input, output, tag, tag_len);
 }
-#endif /* !MBEDTLS_CCM_ALT */
 
 #if defined(MBEDTLS_SELF_TEST) && defined(MBEDTLS_CCM_GCM_CAN_AES)
 /*

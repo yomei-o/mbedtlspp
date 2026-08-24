@@ -4,11 +4,11 @@
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
-#include "common.hpp"
+#include "x509_internal.hpp"
+
 #if defined(MBEDTLS_X509_CSR_WRITE_C) || defined(MBEDTLS_X509_CRT_WRITE_C)
 
 #include "mbedtls_x509_crt.hpp"
-#include "x509_internal.hpp"
 #include "mbedtls_asn1write.hpp"
 #include "mbedtls_error.hpp"
 #include "mbedtls_oid.hpp"
@@ -22,11 +22,9 @@
 #include "mbedtls_pem.hpp"
 #endif /* MBEDTLS_PEM_WRITE_C */
 
-#if defined(MBEDTLS_USE_PSA_CRYPTO)
 #include "psa_crypto.hpp"
 #include "mbedtls_psa_util.hpp"
 #include "md_psa.hpp"
-#endif /* MBEDTLS_USE_PSA_CRYPTO */
 
 #define CHECK_OVERFLOW_ADD(a, b) \
     do                         \

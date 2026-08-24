@@ -10,7 +10,7 @@
 #ifndef MBEDTLS_MEMORY_BUFFER_ALLOC_H
 #define MBEDTLS_MEMORY_BUFFER_ALLOC_H
 
-#include "mbedtls_build_info.hpp"
+#include "tf-psa-crypto_build_info.hpp"
 
 #include <stddef.h>
 

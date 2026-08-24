@@ -12,13 +12,13 @@
  * RFC 4492
  */
 
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
 #if defined(MBEDTLS_ECDH_C)
 
-#include "mbedtls_ecdh.hpp"
+#include "mbedtls_private_ecdh.hpp"
 #include "mbedtls_platform_util.hpp"
-#include "mbedtls_error.hpp"
+#include "mbedtls_private_error_common.hpp"
 
 #include <string.h>
 
@@ -43,7 +43,6 @@ static inline int mbedtls_ecdh_can_do(mbedtls_ecp_group_id gid)
     return 1;
 }
 
-#if !defined(MBEDTLS_ECDH_GEN_PUBLIC_ALT)
 /*
  * Generate public key (restartable version)
  *
@@ -84,9 +83,7 @@ static inline int mbedtls_ecdh_gen_public(mbedtls_ecp_group *grp, mbedtls_mpi *d
 {
     return ecdh_gen_public_restartable(grp, d, Q, f_rng, p_rng, NULL);
 }
-#endif /* !MBEDTLS_ECDH_GEN_PUBLIC_ALT */
 
-#if !defined(MBEDTLS_ECDH_COMPUTE_SHARED_ALT)
 /*
  * Compute shared secret (SEC1 3.3.1)
  */
@@ -129,7 +126,6 @@ static inline int mbedtls_ecdh_compute_shared(mbedtls_ecp_group *grp, mbedtls_mp
     return ecdh_compute_shared_restartable(grp, z, Q, d,
                                            f_rng, p_rng, NULL);
 }
-#endif /* !MBEDTLS_ECDH_COMPUTE_SHARED_ALT */
 
 static inline  void ecdh_init_internal(mbedtls_ecdh_context_mbed *ctx)
 {
@@ -646,13 +642,11 @@ static inline  int ecdh_calc_secret_internal(mbedtls_ecdh_context_mbed *ctx,
     }
 #endif /* MBEDTLS_ECP_RESTARTABLE */
 
-    size_t p_bytes = ctx->grp.pbits / 8 + ((ctx->grp.pbits % 8) != 0);
-
-    if (p_bytes > blen) {
-        return MBEDTLS_ERR_ECP_BUFFER_TOO_SMALL;
+    if (mbedtls_mpi_size(&ctx->z) > blen) {
+        return MBEDTLS_ERR_ECP_BAD_INPUT_DATA;
     }
 
-    *olen = p_bytes;
+    *olen = ctx->grp.pbits / 8 + ((ctx->grp.pbits % 8) != 0);
 
     if (mbedtls_ecp_get_type(&ctx->grp) == MBEDTLS_ECP_TYPE_MONTGOMERY) {
         return mbedtls_mpi_write_binary_le(&ctx->z, buf, *olen);

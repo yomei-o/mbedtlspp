@@ -11,13 +11,11 @@
 #ifndef MBEDTLS_SSL_DEBUG_HELPERS_H
 #define MBEDTLS_SSL_DEBUG_HELPERS_H
 
-#include "common.hpp"
+#include "ssl_misc.hpp"
 
 #if defined(MBEDTLS_DEBUG_C)
 
 #include "mbedtls_ssl.hpp"
-#include "ssl_misc.hpp"
-
 
 static inline const char *mbedtls_ssl_states_str(mbedtls_ssl_states in);
 
@@ -37,8 +35,6 @@ static inline const char *mbedtls_ssl_sig_alg_to_str(uint16_t in);
 static inline const char *mbedtls_ssl_named_group_to_str(uint16_t in);
 
 static inline const char *mbedtls_ssl_get_extension_name(unsigned int extension_type);
-
-static inline const char *mbedtls_ssl_get_hs_msg_name(int hs_msg_type);
 
 static inline void mbedtls_ssl_print_extensions(const mbedtls_ssl_context *ssl,
                                   int level, const char *file, int line,

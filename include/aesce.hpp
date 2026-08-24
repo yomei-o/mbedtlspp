@@ -14,10 +14,9 @@
 #ifndef MBEDTLS_AESCE_H
 #define MBEDTLS_AESCE_H
 
-#include "mbedtls_build_info.hpp"
-#include "common.hpp"
+#include "tf_psa_crypto_common.hpp"
 
-#include "mbedtls_aes.hpp"
+#include "mbedtls_private_aes.hpp"
 
 
 #if defined(MBEDTLS_AESCE_C) \
