@@ -17,7 +17,7 @@
 
 #if defined(MBEDTLS_THREADING_C)
 
-#include "mbedtls_threading.hpp"
+#include "threading_internal.hpp"
 
 #if defined(MBEDTLS_HAVE_TIME_DATE) && !defined(MBEDTLS_PLATFORM_GMTIME_R_ALT)
 
