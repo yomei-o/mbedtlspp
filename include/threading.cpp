@@ -124,8 +124,11 @@ static inline  void threading_mutex_dummy(mbedtls_threading_mutex_t *mutex)
     return;
 }
 
-static inline void (*mbedtls_mutex_init)(mbedtls_threading_mutex_t *) = threading_mutex_dummy;
-static inline void (*mbedtls_mutex_free)(mbedtls_threading_mutex_t *) = threading_mutex_dummy;
+// 既定で実体確保版を使う（set_alt を呼ばなくても各 context の mutex が正しく確保される）。
+// no-op の threading_mutex_dummy を既定にすると、set_alt 未登録の経路（サーバ側）で
+// mtx が未初期化のままになり、mbedtls_mutex_lock() が不正な std::mutex* を触って落ちる。
+static inline void (*mbedtls_mutex_init)(mbedtls_threading_mutex_t *) = threading_mutex_init;
+static inline void (*mbedtls_mutex_free)(mbedtls_threading_mutex_t *) = threading_mutex_free;
 static inline int (*mbedtls_mutex_lock)(mbedtls_threading_mutex_t *) = threading_mutex_lock;
 static inline int (*mbedtls_mutex_unlock)(mbedtls_threading_mutex_t *) = threading_mutex_unlock;
 
@@ -172,6 +175,30 @@ static inline void mbedtls_threading_free_alt(void)
     mbedtls_mutex_free(&mbedtls_threading_psa_rngdata_mutex);
 #endif
 }
+
+/*
+ * ライブラリ自動初期化。
+ *
+ *   プロセス起動時（main より前・スレッド生成前）に一度だけ mbedtls_threading_set_alt()
+ *   を実行し、C++ std::mutex ベースの mutex コールバックを登録する。あわせて set_alt 内で
+ *   グローバル mutex（PSA の key_slot / globaldata / rngdata、gmtime 等）も初期化される。
+ *
+ *   これにより、アプリ側が set_alt / ensure 系を呼ばなくても THREADING_ALT が完全に機能する。
+ *   （各 context の mutex は threading_mutex_init が _init 時に確保し、グローバル mutex は
+ *   ここで確保される。zeroize されても mtx は null になるだけで安全。）
+ *
+ *   注: mbedtls の context 生成はすべて実行時（main 以降）なので、この静的初期化が先行する。
+ */
+namespace {
+struct mbedtls_threading_auto_init_t {
+    mbedtls_threading_auto_init_t()
+    {
+        mbedtls_threading_set_alt(threading_mutex_init, threading_mutex_free,
+                                  threading_mutex_lock, threading_mutex_unlock);
+    }
+};
+static mbedtls_threading_auto_init_t mbedtls_threading_auto_init_instance;
+}  // namespace
 #endif /* MBEDTLS_THREADING_ALT */
 
 /*

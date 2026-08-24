@@ -62,20 +62,26 @@ static inline int memcpy_s__(void *dest, size_t destsz, const void *src, size_t 
 
 struct BIO
 {
-    BIO(int s) {
+    // Socket-backed BIO (TLS transport).
+    BIO(int s) : is_mem(false) {
         ctx.fd = s;
     }
+    // Memory-backed BIO (httplib 0.46 in-memory PEM parsing).
+    BIO(const void* buf, int len) : is_mem(true) {
+        const unsigned char* p = static_cast<const unsigned char*>(buf);
+        size_t n = (len < 0) ? (buf ? strlen(static_cast<const char*>(buf)) : 0)
+                             : static_cast<size_t>(len);
+        if (p && n) mem.assign(p, p + n);
+    }
     ~BIO() {
-        mbedtls_net_free(&ctx);
+        if (!is_mem) mbedtls_net_free(&ctx);
     }
 
-    mbedtls_net_context ctx;
+    mbedtls_net_context ctx{};
 
-private:
-
-    BIO() {
-        mbedtls_net_init(&ctx);
-    }
+    bool is_mem = false;
+    std::vector<unsigned char> mem;
+    size_t mem_pos = 0;
 };
 
 #define BIO_NOCLOSE 0
@@ -100,14 +106,17 @@ void BIO_set_nbio(BIO* bio, long blocking)
 
 BIO* BIO_new_mem_buf(const void* buf, int len)
 {
-    assert("NOT IMPLEMENTED" == 0);
+    return new BIO(buf, len);
+}
 
-    return nullptr;
+void BIO_free(BIO* a)
+{
+    if (a) delete a;
 }
 
 void BIO_free_all(BIO* a)
 {
-    assert("NOT IMPLEMENTED" == 0);
+    if (a) delete a;
 }
 
 // error codes
@@ -150,6 +159,32 @@ void BIO_free_all(BIO* a)
 
 // x509 stuff
 
+// ---- httplib 0.46 compatibility: ASN.1 time / integer helpers ----
+struct ASN1_TIME {
+    time_t epoch = 0;
+    bool   is_set = false;
+};
+
+struct ASN1_INTEGER {
+    std::vector<unsigned char> bytes;
+};
+
+static inline time_t mbedtls_x509_time_to_epoch(const mbedtls_x509_time* t) {
+    struct tm tmv;
+    memset(&tmv, 0, sizeof(tmv));
+    tmv.tm_year = t->year - 1900;
+    tmv.tm_mon  = t->mon  - 1;
+    tmv.tm_mday = t->day;
+    tmv.tm_hour = t->hour;
+    tmv.tm_min  = t->min;
+    tmv.tm_sec  = t->sec;
+#ifdef _WIN32
+    return _mkgmtime(&tmv);
+#else
+    return timegm(&tmv);
+#endif
+}
+
 struct X509 {
 
     X509() // empty cert 
@@ -179,6 +214,11 @@ struct X509 {
     }
 
     mbedtls_x509_crt crt;
+
+    // Caches backing httplib 0.46 accessors (must outlive the call).
+    ASN1_TIME    not_before_;
+    ASN1_TIME    not_after_;
+    ASN1_INTEGER serial_cache_;
 };
 
 struct X509_CRL {
@@ -219,6 +259,13 @@ struct X509_NAME_OPENSSL // originally X509_NAME bug there's a name conflict on 
     std::string str;
 };
 
+// httplib 0.46 refers to the type as X509_NAME directly. wincrypt.h defines
+// X509_NAME as a macro on Windows, but httplib #undef's it before including us.
+#ifdef X509_NAME
+#undef X509_NAME
+#endif
+typedef X509_NAME_OPENSSL X509_NAME;
+
 # define GEN_DNS         2
 # define GEN_IPADD       7
 
@@ -227,28 +274,39 @@ struct X509_NAME_OPENSSL // originally X509_NAME bug there's a name conflict on 
 struct GENERAL_NAME_D
 {
     const struct GENERAL_NAME* ia5;
+    // httplib 0.46 accesses these named members; all alias the same node.
+    const struct GENERAL_NAME* dNSName;
+    const struct GENERAL_NAME* iPAddress;
+    const struct GENERAL_NAME* rfc822Name;
+    const struct GENERAL_NAME* uniformResourceIdentifier;
 };
 
 struct GENERAL_NAME
 {
     GENERAL_NAME(int t, const std::vector<unsigned char>& b)
-        : type(t), buffer(b)
+        : buffer(b), type(t)
     {
-        d.ia5 = this;
+        set_self();
     }
 
     GENERAL_NAME(const GENERAL_NAME& copy)
     {
         this->type = copy.type;
         this->buffer = copy.buffer;
-        this->d.ia5 = this; // !
+        set_self();
     }
 
     GENERAL_NAME(const GENERAL_NAME&& copy)
     {
         this->type = copy.type;
         this->buffer = copy.buffer;
-        this->d.ia5 = this;
+        set_self();
+    }
+
+    void set_self()
+    {
+        d.ia5 = d.dNSName = d.iPAddress = d.rfc822Name =
+            d.uniformResourceIdentifier = this;
     }
 
     std::vector<unsigned char> buffer;
@@ -264,18 +322,14 @@ struct stack_st_GENERAL_NAME
 };
 
 inline const char* ASN1_STRING_get0_data(const GENERAL_NAME* s) {
-
-    if (s->type == GEN_DNS)
-
+    // httplib 0.46 reads DNS / IP / email / URI SAN values through this.
+    if (s && !s->buffer.empty())
         return (const char*)&s->buffer[0];
-
     return nullptr;
 }
 
 inline size_t ASN1_STRING_length(const GENERAL_NAME* s) {
-
-    return s->buffer.size();
-
+    return s ? s->buffer.size() : 0;
 }
 
 #define STACK_OF(a) a
@@ -649,11 +703,20 @@ struct EVP_PKEY {
     {
 
     }
+    // In-memory key (httplib 0.46 PEM_read_bio_PrivateKey).
+    EVP_PKEY(const std::vector<unsigned char>& pem, const char* password)
+        : from_memory(true), key_pem(pem)
+    {
+        if (password) passwd = password;
+    }
     ~EVP_PKEY() {
 
     }
 
     std::string file_name;
+    bool from_memory = false;
+    std::vector<unsigned char> key_pem;
+    std::string passwd;
 };
 
 struct EVP_MD {
@@ -699,6 +762,21 @@ void EVP_PKEY_free(EVP_PKEY* pkey)
 
 int SSL_CTX_use_PrivateKey(SSL_CTX* ctx, EVP_PKEY* pkey)
 {
+    if (pkey->from_memory)
+    {
+        std::vector<unsigned char> buf = pkey->key_pem;
+        buf.push_back('\0'); // mbedtls PEM parsing requires a NUL within the length
+        const unsigned char* pwd = pkey->passwd.empty()
+                                       ? NULL
+                                       : (const unsigned char*)pkey->passwd.c_str();
+        if (mbedtls_pk_parse_key(&ctx->pkey, &buf[0], buf.size(), pwd,
+                                 pkey->passwd.size(), mbedtls_ctr_drbg_random,
+                                 &ctx->ctr_drbg) == 0)
+        {
+            return (mbedtls_ssl_conf_own_cert(&ctx->conf_, &ctx->crt, &ctx->pkey) == 0) ? 1 : 0;
+        }
+        return 0;
+    }
     return SSL_CTX_use_PrivateKey_file(ctx, pkey->file_name.c_str(), 0);
 }
 
@@ -733,9 +811,21 @@ int SSL_CTX_use_certificate_chain_file(SSL_CTX* ctx, const char* file) // only f
     return SSL_CTX_use_certificate_file(ctx, file, SSL_FILETYPE_PEM);
 }
 
-void SSL_CTX_set_verify(SSL_CTX* ctx, int mode, void*)
+struct X509_STORE_CTX;
+typedef int (*SSL_verify_cb)(int, X509_STORE_CTX*);
+
+void SSL_CTX_set_verify(SSL_CTX* ctx, int mode, SSL_verify_cb /*callback*/)
 {
-    assert("NOT IMPLEMENTED" == 0); // only for server
+    // Map the OpenSSL verify mode onto an mbedTLS authmode. The verify
+    // callback itself is not wired into mbedTLS (default verification via
+    // SSL_get_verify_result is used); it is accepted for API compatibility
+    // with httplib 0.46.
+    int authmode = MBEDTLS_SSL_VERIFY_NONE;
+    if (mode & SSL_VERIFY_PEER)
+        authmode = (mode & SSL_VERIFY_FAIL_IF_NO_PEER_CERT)
+                       ? MBEDTLS_SSL_VERIFY_REQUIRED
+                       : MBEDTLS_SSL_VERIFY_OPTIONAL;
+    mbedtls_ssl_conf_authmode(&ctx->conf_, authmode);
 }
 
 
@@ -1114,5 +1204,356 @@ EVP_MD_CTX::~EVP_MD_CTX()
     }
 }
 
+
+// =====================================================================
+//  httplib 0.46 compatibility shims (OpenSSL API surface on top of mbedTLS).
+//  These are additive; httplib 0.20 does not reference them, so the same
+//  bridge builds against both versions.
+// =====================================================================
+
+// ---- error queue (mbedTLS has none) --------------------------------
+inline unsigned long ERR_get_error() { return 0; }
+inline unsigned long ERR_peek_last_error() { return 0; }
+inline void ERR_clear_error() {}
+inline void ERR_error_string_n(unsigned long e, char* buf, size_t len) {
+    if (buf && len) snprintf(buf, len, "error:%08lX", e);
+}
+#define ERR_GET_REASON(e) ((int)((e) & 0xFFFL))
+#ifndef X509_R_CERT_ALREADY_IN_HASH_TABLE
+#define X509_R_CERT_ALREADY_IN_HASH_TABLE 101
+#endif
+
+// ---- assorted error codes / GENERAL_NAME types ---------------------
+#ifndef SSL_ERROR_NONE
+#define SSL_ERROR_NONE 0
+#endif
+#ifndef SSL_ERROR_SSL
+#define SSL_ERROR_SSL  1
+#endif
+#ifndef GEN_EMAIL
+#define GEN_EMAIL 1
+#endif
+#ifndef GEN_URI
+#define GEN_URI 6
+#endif
+#ifndef X509_V_ERR_HOSTNAME_MISMATCH
+#define X509_V_ERR_HOSTNAME_MISMATCH 62
+#endif
+
+typedef stack_st_GENERAL_NAME GENERAL_NAMES;
+
+// httplib 0.46 frees the SAN list as STACK_OF(GENERAL_NAME)* (== stack here).
+inline void GENERAL_NAMES_free(stack_st_GENERAL_NAME* p) { if (p) delete p; }
+
+// ---- BIO / SSL accessors -------------------------------------------
+inline void SSL_CTX_clear_mode(SSL_CTX*, long) {}
+
+inline BIO* SSL_get_rbio(const SSL* ssl) { return ssl ? ssl->rbio : nullptr; }
+
+inline const char* SSL_get_servername(const SSL*, int) { return nullptr; }
+
+// ---- hostname verification parameters ------------------------------
+typedef SSL X509_VERIFY_PARAM; // the "param" is just the session in this bridge
+#ifndef X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS
+#define X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS 0x4
+#endif
+
+inline X509_VERIFY_PARAM* SSL_get0_param(SSL* ssl) { return ssl; }
+inline void X509_VERIFY_PARAM_set_hostflags(X509_VERIFY_PARAM*, unsigned int) {}
+inline int X509_VERIFY_PARAM_set1_host(X509_VERIFY_PARAM* p, const char* name,
+                                       size_t namelen) {
+    if (!p || !name) return 0;
+    std::string h = (namelen > 0) ? std::string(name, namelen) : std::string(name);
+    return (mbedtls_ssl_set_hostname(&p->mbedtls_ctx, h.c_str()) == 0) ? 1 : 0;
+}
+
+// ---- X509_NAME helpers ---------------------------------------------
+inline X509_NAME* X509_get_issuer_name(const X509* x) {
+    char buf[512];
+    return (mbedtls_x509_dn_gets(buf, sizeof(buf), &x->crt.issuer) > 0)
+               ? new X509_NAME(buf)
+               : nullptr;
+}
+
+inline char* X509_NAME_oneline(const X509_NAME* name, char* buf, int size) {
+    if (!name) return nullptr;
+    if (buf && size > 0) {
+        strncpy_s__(buf, (size_t)size, name->str.c_str(), name->str.size());
+        return buf;
+    }
+    char* out = (char*)malloc(name->str.size() + 1);
+    if (out) {
+        memcpy(out, name->str.c_str(), name->str.size());
+        out[name->str.size()] = '\0';
+    }
+    return out;
+}
+
+inline X509_NAME* X509_NAME_dup(X509_NAME* n) {
+    return n ? new X509_NAME(n->str.c_str()) : nullptr;
+}
+inline void X509_NAME_free(X509_NAME* n) { if (n) delete n; }
+
+// ---- STACK_OF(X509_NAME) (client CA name list) ---------------------
+struct stack_st_X509_NAME { std::vector<X509_NAME*> names; };
+
+inline X509_NAME* sk_X509_NAME_new_null() {
+    return reinterpret_cast<X509_NAME*>(new stack_st_X509_NAME());
+}
+inline int sk_X509_NAME_push(X509_NAME* stk, X509_NAME* nm) {
+    auto s = reinterpret_cast<stack_st_X509_NAME*>(stk);
+    s->names.push_back(nm);
+    return (int)s->names.size();
+}
+typedef void (*sk_X509_NAME_freefunc)(X509_NAME*);
+inline void sk_X509_NAME_pop_free(X509_NAME* stk, sk_X509_NAME_freefunc f) {
+    auto s = reinterpret_cast<stack_st_X509_NAME*>(stk);
+    if (s) {
+        if (f) for (auto n : s->names) f(n);
+        delete s;
+    }
+}
+
+inline void SSL_CTX_set_client_CA_list(SSL_CTX*, X509_NAME* list) {
+    // mbedTLS does not send CA name hints; take ownership and release.
+    if (list) sk_X509_NAME_pop_free(list, X509_NAME_free);
+}
+
+inline X509_NAME* SSL_load_client_CA_file(const char* file) {
+    if (!file) return nullptr;
+    mbedtls_x509_crt chain;
+    mbedtls_x509_crt_init(&chain);
+    if (mbedtls_x509_crt_parse_file(&chain, file) != 0) {
+        mbedtls_x509_crt_free(&chain);
+        return nullptr;
+    }
+    X509_NAME* stk = sk_X509_NAME_new_null();
+    for (mbedtls_x509_crt* c = &chain; c != nullptr; c = c->next) {
+        char buf[512];
+        if (mbedtls_x509_dn_gets(buf, sizeof(buf), &c->subject) > 0)
+            sk_X509_NAME_push(stk, new X509_NAME(buf));
+    }
+    mbedtls_x509_crt_free(&chain);
+    return stk;
+}
+
+// ---- certificate validity / serial ---------------------------------
+inline const ASN1_TIME* X509_get0_notBefore(const X509* x) {
+    X509* xx = const_cast<X509*>(x);
+    xx->not_before_.epoch = mbedtls_x509_time_to_epoch(&xx->crt.valid_from);
+    xx->not_before_.is_set = true;
+    return &xx->not_before_;
+}
+inline const ASN1_TIME* X509_get0_notAfter(const X509* x) {
+    X509* xx = const_cast<X509*>(x);
+    xx->not_after_.epoch = mbedtls_x509_time_to_epoch(&xx->crt.valid_to);
+    xx->not_after_.is_set = true;
+    return &xx->not_after_;
+}
+
+inline ASN1_TIME* ASN1_TIME_new() { return new ASN1_TIME(); }
+inline void ASN1_TIME_free(ASN1_TIME* t) { if (t) delete t; }
+inline ASN1_TIME* ASN1_TIME_set(ASN1_TIME* t, time_t when) {
+    if (t) { t->epoch = when; t->is_set = true; }
+    return t;
+}
+inline int ASN1_TIME_diff(int* pday, int* psec, const ASN1_TIME* from,
+                          const ASN1_TIME* to) {
+    if (!from || !to) return 0;
+    long long diff = (long long)to->epoch - (long long)from->epoch;
+    if (pday) *pday = (int)(diff / 86400);
+    if (psec) *psec = (int)(diff % 86400);
+    return 1;
+}
+
+inline ASN1_INTEGER* X509_get_serialNumber(X509* x) {
+    if (!x) return nullptr;
+    x->serial_cache_.bytes.assign(x->crt.serial.p,
+                                  x->crt.serial.p + x->crt.serial.len);
+    return &x->serial_cache_;
+}
+
+struct BIGNUM { std::vector<unsigned char> bytes; };
+inline BIGNUM* ASN1_INTEGER_to_BN(const ASN1_INTEGER* a, BIGNUM*) {
+    BIGNUM* bn = new BIGNUM();
+    if (a) bn->bytes = a->bytes;
+    return bn;
+}
+inline char* BN_bn2hex(const BIGNUM* bn) {
+    size_t n = bn ? bn->bytes.size() : 0;
+    char* out = (char*)malloc(n * 2 + 1);
+    if (!out) return nullptr;
+    static const char* hex = "0123456789ABCDEF";
+    for (size_t i = 0; i < n; i++) {
+        out[i * 2]     = hex[(bn->bytes[i] >> 4) & 0xF];
+        out[i * 2 + 1] = hex[bn->bytes[i] & 0xF];
+    }
+    out[n * 2] = '\0';
+    return out;
+}
+inline void BN_free(BIGNUM* bn) { if (bn) delete bn; }
+inline void OPENSSL_free(void* p) { if (p) free(p); }
+
+// ---- DER export / refcount -----------------------------------------
+inline int i2d_X509(X509* x, unsigned char** out) {
+    if (!x) return -1;
+    int len = (int)x->crt.raw.len;
+    if (out && *out) {
+        memcpy(*out, x->crt.raw.p, x->crt.raw.len);
+        *out += len;
+    }
+    return len;
+}
+inline int X509_up_ref(X509*) { return 1; }
+
+// ---- X509_STORE object enumeration (not backed by mbedTLS) ---------
+struct X509_OBJECT {};
+#ifndef X509_LU_X509
+#define X509_LU_X509 1
+#endif
+inline X509_OBJECT* X509_STORE_get0_objects(X509_STORE*) { return nullptr; }
+inline int sk_X509_OBJECT_num(const X509_OBJECT*) { return 0; }
+inline X509_OBJECT* sk_X509_OBJECT_value(const X509_OBJECT*, int) { return nullptr; }
+inline int X509_OBJECT_get_type(const X509_OBJECT*) { return 0; }
+inline X509* X509_OBJECT_get0_X509(const X509_OBJECT*) { return nullptr; }
+
+// ---- verify callback context (stubs; callback path not wired) ------
+struct X509_STORE_CTX {};
+inline int SSL_get_ex_data_X509_STORE_CTX_idx() { return 0; }
+inline void* X509_STORE_CTX_get_ex_data(X509_STORE_CTX*, int) { return nullptr; }
+inline X509* X509_STORE_CTX_get_current_cert(X509_STORE_CTX*) { return nullptr; }
+inline int X509_STORE_CTX_get_error_depth(X509_STORE_CTX*) { return 0; }
+inline int X509_STORE_CTX_get_error(X509_STORE_CTX*) { return 0; }
+
+inline const char* X509_verify_cert_error_string(long n) {
+    switch (n) {
+    case X509_V_OK: return "ok";
+    case X509_V_ERR_CERT_HAS_EXPIRED: return "certificate has expired";
+    case X509_V_ERR_CERT_NOT_YET_VALID: return "certificate is not yet valid";
+    case X509_V_ERR_CERT_REVOKED: return "certificate revoked";
+    case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT: return "self signed certificate";
+    default: return "certificate verification failed";
+    }
+}
+
+// ---- in-memory PEM reading -----------------------------------------
+inline X509* PEM_read_bio_X509(BIO* bp, void*, void*, void*) {
+    if (!bp || !bp->is_mem) return nullptr;
+    static const std::string kBegin = "-----BEGIN CERTIFICATE-----";
+    static const std::string kEnd   = "-----END CERTIFICATE-----";
+    std::string hay((const char*)bp->mem.data(), bp->mem.size());
+    size_t b = hay.find(kBegin, bp->mem_pos);
+    if (b == std::string::npos) return nullptr;
+    size_t e = hay.find(kEnd, b);
+    if (e == std::string::npos) return nullptr;
+    e += kEnd.size();
+    bp->mem_pos = e;
+    std::vector<unsigned char> pem(hay.begin() + b, hay.begin() + e);
+    pem.push_back('\n');
+    pem.push_back('\0'); // mbedtls PEM length must include the NUL terminator
+    std::unique_ptr<X509> crt(new X509());
+    if (mbedtls_x509_crt_parse(&crt->crt, pem.data(), pem.size()) == 0)
+        return crt.release();
+    return nullptr;
+}
+
+inline EVP_PKEY* PEM_read_bio_PrivateKey(BIO* bp, void*, void*, void* u) {
+    if (!bp || !bp->is_mem) return nullptr;
+    std::vector<unsigned char> pem(bp->mem.begin() + bp->mem_pos, bp->mem.end());
+    bp->mem_pos = bp->mem.size();
+    if (pem.empty()) return nullptr;
+    const char* password = static_cast<const char*>(u);
+    return new EVP_PKEY(pem, password);
+}
+
+// ---- hostname matching (post-handshake) ----------------------------
+inline bool bridge_ci_equal_(const char* a, size_t alen, const char* b, size_t blen) {
+    if (alen != blen) return false;
+    for (size_t i = 0; i < alen; i++) {
+        char ca = a[i], cb = b[i];
+        if (ca >= 'A' && ca <= 'Z') ca = (char)(ca + 32);
+        if (cb >= 'A' && cb <= 'Z') cb = (char)(cb + 32);
+        if (ca != cb) return false;
+    }
+    return true;
+}
+inline bool bridge_match_dns_(const char* pat, size_t patlen, const char* host) {
+    if (patlen >= 2 && pat[0] == '*' && pat[1] == '.') {
+        const char* dot = strchr(host, '.');
+        if (!dot) return false;
+        const char* hrest = dot + 1;
+        return bridge_ci_equal_(pat + 2, patlen - 2, hrest, strlen(hrest));
+    }
+    return bridge_ci_equal_(pat, patlen, host, strlen(host));
+}
+
+inline int X509_check_host(X509* x, const char* name, size_t namelen,
+                           unsigned int /*flags*/, char** /*peername*/) {
+    if (!x || !name) return 0;
+    std::string host = (namelen > 0) ? std::string(name, namelen) : std::string(name);
+    bool san_dns_present = false;
+    const mbedtls_x509_crt* crt = &x->crt;
+    if (crt->ext_types & MBEDTLS_X509_EXT_SUBJECT_ALT_NAME) {
+        const mbedtls_x509_sequence* cur = &crt->subject_alt_names;
+        mbedtls_x509_subject_alternative_name san;
+        while (cur) {
+            memset(&san, 0, sizeof(san));
+            if (mbedtls_x509_parse_subject_alt_name(&cur->buf, &san) == 0) {
+                if (san.type == MBEDTLS_X509_SAN_DNS_NAME) {
+                    san_dns_present = true;
+                    bool m = bridge_match_dns_(
+                        (const char*)san.san.unstructured_name.p,
+                        san.san.unstructured_name.len, host.c_str());
+                    mbedtls_x509_free_subject_alt_name(&san);
+                    if (m) return 1;
+                    cur = cur->next;
+                    continue;
+                }
+                mbedtls_x509_free_subject_alt_name(&san);
+            }
+            cur = cur->next;
+        }
+    }
+    if (san_dns_present) return 0; // SAN present, none matched -> RFC6125: fail
+    // Fall back to the subject CommonName.
+    X509_NAME* subj = X509_get_subject_name(x);
+    if (subj) {
+        char cn[256];
+        int l = X509_NAME_get_text_by_NID(subj, NID_commonName, cn, sizeof(cn));
+        delete subj;
+        if (l > 0) return bridge_match_dns_(cn, (size_t)l, host.c_str()) ? 1 : 0;
+    }
+    return 0;
+}
+
+inline int X509_check_ip_asc(X509* x, const char* ipasc, unsigned int /*flags*/) {
+    if (!x || !ipasc) return 0;
+    unsigned char target[16];
+    size_t tlen = 0;
+    struct in_addr a4;
+    struct in6_addr a6;
+    if (inet_pton(AF_INET, ipasc, &a4) == 1) { memcpy(target, &a4, 4); tlen = 4; }
+    else if (inet_pton(AF_INET6, ipasc, &a6) == 1) { memcpy(target, &a6, 16); tlen = 16; }
+    else return 0;
+    const mbedtls_x509_crt* crt = &x->crt;
+    if (crt->ext_types & MBEDTLS_X509_EXT_SUBJECT_ALT_NAME) {
+        const mbedtls_x509_sequence* cur = &crt->subject_alt_names;
+        mbedtls_x509_subject_alternative_name san;
+        while (cur) {
+            memset(&san, 0, sizeof(san));
+            if (mbedtls_x509_parse_subject_alt_name(&cur->buf, &san) == 0) {
+                if (san.type == MBEDTLS_X509_SAN_IP_ADDRESS &&
+                    san.san.unstructured_name.len == tlen &&
+                    memcmp(san.san.unstructured_name.p, target, tlen) == 0) {
+                    mbedtls_x509_free_subject_alt_name(&san);
+                    return 1;
+                }
+                mbedtls_x509_free_subject_alt_name(&san);
+            }
+            cur = cur->next;
+        }
+    }
+    return 0;
+}
 
 #endif // CPPHTTPLIB_HTTPLIB_MBEDTLS_H
