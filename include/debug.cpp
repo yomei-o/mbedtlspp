@@ -21,6 +21,16 @@
 /* DEBUG_BUF_SIZE must be at least 2 */
 #define DEBUG_BUF_SIZE      512
 
+static inline int mbedtls_debug_snprintf(char *dest, size_t maxlen,
+                           const char *format, ...)
+{
+    va_list argp;
+    va_start(argp, format);
+    int ret = mbedtls_vsnprintf(dest, maxlen, format, argp);
+    va_end(argp);
+    return ret;
+}
+
 static inline  int debug_threshold = 0;
 
 static inline void mbedtls_debug_set_threshold(int threshold)

@@ -83,6 +83,7 @@
 #include "psa_crypto_hash.cpp"
 #include "psa_crypto_mac.cpp"
 #include "psa_crypto_pake.cpp"
+#include "psa_crypto_random.cpp"
 #include "psa_crypto_rsa.cpp"
 #include "psa_crypto_se.cpp"
 #include "psa_crypto_slot_management.cpp"

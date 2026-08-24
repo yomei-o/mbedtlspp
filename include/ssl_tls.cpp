@@ -684,7 +684,7 @@ static inline const char *mbedtls_ssl_get_extension_name(unsigned int extension_
         mbedtls_ssl_get_extension_id(extension_type)];
 }
 
-static inline  const char *ssl_tls13_get_hs_msg_name(int hs_msg_type)
+static inline const char *mbedtls_ssl_get_hs_msg_name(int hs_msg_type)
 {
     switch (hs_msg_type) {
         case MBEDTLS_SSL_HS_CLIENT_HELLO:
@@ -699,8 +699,16 @@ static inline  const char *ssl_tls13_get_hs_msg_name(int hs_msg_type)
             return "EncryptedExtensions";
         case MBEDTLS_SSL_HS_CERTIFICATE:
             return "Certificate";
+        case MBEDTLS_SSL_HS_SERVER_KEY_EXCHANGE:
+            return "ServerKeyExchange";
         case MBEDTLS_SSL_HS_CERTIFICATE_REQUEST:
             return "CertificateRequest";
+        case MBEDTLS_SSL_HS_CERTIFICATE_VERIFY:
+            return "CertificateVerify";
+        case MBEDTLS_SSL_HS_CLIENT_KEY_EXCHANGE:
+            return "ClientKeyExchange";
+        case MBEDTLS_SSL_HS_FINISHED:
+            return "Finished";
     }
     return "Unknown";
 }
@@ -715,7 +723,7 @@ static inline void mbedtls_ssl_print_extension(const mbedtls_ssl_context *ssl,
         mbedtls_debug_print_msg(
             ssl, level, file, line,
             "%s: %s(%u) extension %s %s.",
-            ssl_tls13_get_hs_msg_name(hs_msg_type),
+            mbedtls_ssl_get_hs_msg_name(hs_msg_type),
             mbedtls_ssl_get_extension_name(extension_type),
             extension_type,
             extra_msg0, extra_msg1);
@@ -726,7 +734,7 @@ static inline void mbedtls_ssl_print_extension(const mbedtls_ssl_context *ssl,
     if (extra_msg) {
         mbedtls_debug_print_msg(
             ssl, level, file, line,
-            "%s: %s(%u) extension %s.", ssl_tls13_get_hs_msg_name(hs_msg_type),
+            "%s: %s(%u) extension %s.", mbedtls_ssl_get_hs_msg_name(hs_msg_type),
             mbedtls_ssl_get_extension_name(extension_type), extension_type,
             extra_msg);
         return;
@@ -734,7 +742,7 @@ static inline void mbedtls_ssl_print_extension(const mbedtls_ssl_context *ssl,
 
     mbedtls_debug_print_msg(
         ssl, level, file, line,
-        "%s: %s(%u) extension.", ssl_tls13_get_hs_msg_name(hs_msg_type),
+        "%s: %s(%u) extension.", mbedtls_ssl_get_hs_msg_name(hs_msg_type),
         mbedtls_ssl_get_extension_name(extension_type), extension_type);
 }
 
@@ -1048,6 +1056,8 @@ static inline void mbedtls_ssl_transform_init(mbedtls_ssl_transform *transform)
 static inline void mbedtls_ssl_session_init(mbedtls_ssl_session *session)
 {
     memset(session, 0, sizeof(mbedtls_ssl_session));
+    /* Set verify_result to -1u to indicate 'result not available'. */
+    session->verify_result = 0xFFFFFFFF;
 }
 
 MBEDTLS_CHECK_RETURN_CRITICAL
@@ -3278,13 +3288,6 @@ static inline size_t mbedtls_ssl_get_output_max_frag_len(const mbedtls_ssl_conte
 #if defined(MBEDTLS_SSL_PROTO_DTLS)
 static inline size_t mbedtls_ssl_get_current_mtu(const mbedtls_ssl_context *ssl)
 {
-    /* Return unlimited mtu for client hello messages to avoid fragmentation. */
-    if (ssl->conf->endpoint == MBEDTLS_SSL_IS_CLIENT &&
-        (ssl->state == MBEDTLS_SSL_CLIENT_HELLO ||
-         ssl->state == MBEDTLS_SSL_SERVER_HELLO)) {
-        return 0;
-    }
-
     if (ssl->handshake == NULL || ssl->handshake->mtu == 0) {
         return ssl->mtu;
     }
@@ -5003,6 +5006,9 @@ static inline void mbedtls_ssl_session_free(mbedtls_ssl_session *session)
 #endif
 
     mbedtls_platform_zeroize(session, sizeof(mbedtls_ssl_session));
+
+    /* Set verify_result to -1u to indicate 'result not available'. */
+    session->verify_result = 0xFFFFFFFF;
 }
 
 #if defined(MBEDTLS_SSL_CONTEXT_SERIALIZATION)
@@ -7929,6 +7935,7 @@ static inline  int ssl_parse_certificate_coordinate(mbedtls_ssl_context *ssl,
         ssl->handshake->ciphersuite_info;
 
     if (!mbedtls_ssl_ciphersuite_uses_srv_cert(ciphersuite_info)) {
+        ssl->session_negotiate->verify_result = 0;
         return SSL_CERTIFICATE_SKIP;
     }
 
@@ -9873,6 +9880,7 @@ static inline int mbedtls_ssl_verify_certificate(mbedtls_ssl_context *ssl,
                                    void *rs_ctx)
 {
     if (authmode == MBEDTLS_SSL_VERIFY_NONE) {
+        ssl->session_negotiate->verify_result = 0;
         return 0;
     }
 

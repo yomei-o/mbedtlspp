@@ -10,15 +10,14 @@
  * might be translated to branches by some compilers on some platforms.
  */
 
-#include <stdint.h>
-#include <limits.h>
-
 #include "common.hpp"
 #include "constant_time_internal.hpp"
 #include "mbedtls_constant_time.hpp"
 #include "mbedtls_error.hpp"
 #include "mbedtls_platform_util.hpp"
 
+#include <limits.h>
+#include <stdint.h>
 #include <string.h>
 
 #if !defined(MBEDTLS_CT_ASM)
