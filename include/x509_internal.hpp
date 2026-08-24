@@ -15,6 +15,7 @@
 #include "mbedtls_private_access.hpp"
 
 #include "mbedtls_x509.hpp"
+#include "mbedtls_x509_crt.hpp"
 #include "mbedtls_asn1.hpp"
 
 #include "pk_internal.hpp" // for a lot of things, including in SSL
@@ -78,5 +79,19 @@ static inline int mbedtls_x509_info_key_usage(char **buf, size_t *size,
 
 static inline int mbedtls_x509_write_set_san_common(mbedtls_asn1_named_data **extensions,
                                       const mbedtls_x509_san_list *san_list);
+
+/*
+ * Check md_alg against profile
+ * Return 0 if md_alg is acceptable for this profile, -1 otherwise
+ */
+static inline int mbedtls_x509_profile_check_md_alg(const mbedtls_x509_crt_profile *profile,
+                                      mbedtls_md_type_t md_alg);
+
+/*
+ * Check pk_alg against profile
+ * Return 0 if pk_alg is acceptable for this profile, -1 otherwise
+ */
+static inline int mbedtls_x509_profile_check_pk_alg(const mbedtls_x509_crt_profile *profile,
+                                      mbedtls_pk_sigalg_t pk_alg);
 
 #endif /* MBEDTLS_X509_INTERNAL_H */
