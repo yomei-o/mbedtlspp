@@ -19,6 +19,7 @@ static inline int mbedtls_pk_rsa_set_key(mbedtls_pk_context *pk, const unsigned 
     psa_status_t status;
     size_t key_bits = 0;
 
+    pk->psa_type = PSA_KEY_TYPE_RSA_KEY_PAIR;
     psa_set_key_type(&attr, PSA_KEY_TYPE_RSA_KEY_PAIR);
     psa_set_key_usage_flags(&attr, PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_SIGN_MESSAGE |
                             PSA_KEY_USAGE_VERIFY_HASH | PSA_KEY_USAGE_VERIFY_MESSAGE |
@@ -94,20 +95,12 @@ static inline int mbedtls_pk_rsa_set_pubkey(mbedtls_pk_context *pk, const unsign
         return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
     }
     pk->bits = key_bits;
-    pk->rsa_padding = MBEDTLS_PK_RSA_PKCS_V15;
 
     memcpy(pk->pub_raw, key, key_len);
     pk->pub_raw_len = key_len;
 
+    pk->psa_type = PSA_KEY_TYPE_RSA_PUBLIC_KEY;
+
     return 0;
-}
-
-static inline int mbedtls_pk_rsa_set_pubkey_from_prv(mbedtls_pk_context *pk)
-{
-    psa_status_t status;
-
-    status = psa_export_public_key(pk->priv_id, pk->pub_raw, sizeof(pk->pub_raw),
-                                   &pk->pub_raw_len);
-    return PSA_PK_TO_MBEDTLS_ERR(status);
 }
 #endif /* PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY */

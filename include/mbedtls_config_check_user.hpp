@@ -117,8 +117,8 @@
 #endif
 #undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_BASE64_C
 
-#if defined(MBEDTLS_BIGNUM_C) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_BIGNUM_C
-#  error "MBEDTLS_BIGNUM_C must be configured in psa/crypto_config.h."
+#if defined(MBEDTLS_BIGNUM_C)
+#  error "MBEDTLS_BIGNUM_C is an internal macro of TF-PSA-Crypto and may not be configured."
 #endif
 #if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_BIGNUM_C
 #  define MBEDTLS_BIGNUM_C
@@ -253,13 +253,9 @@
 #endif
 #undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_CIPHER_MODE_XTS
 
-#if defined(MBEDTLS_CIPHER_NULL_CIPHER) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_CIPHER_NULL_CIPHER
-#  error "MBEDTLS_CIPHER_NULL_CIPHER must be configured in psa/crypto_config.h."
+#if defined(MBEDTLS_CIPHER_NULL_CIPHER) //no-check-names
+#  error "MBEDTLS_CIPHER_NULL_CIPHER was removed in Mbed TLS 4.0." //no-check-names
 #endif
-#if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_CIPHER_NULL_CIPHER
-#  define MBEDTLS_CIPHER_NULL_CIPHER
-#endif
-#undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_CIPHER_NULL_CIPHER
 
 #if defined(MBEDTLS_CIPHER_PADDING_ONE_AND_ZEROS) //no-check-names
 #  error "MBEDTLS_CIPHER_PADDING_ONE_AND_ZEROS was removed in Mbed TLS 4.0." //no-check-names
@@ -349,13 +345,9 @@
 #  error "MBEDTLS_DES_ALT was removed in Mbed TLS 4.0." //no-check-names
 #endif
 
-#if defined(MBEDTLS_DES_C)
-#  error "MBEDTLS_DES_C is an internal macro of TF-PSA-Crypto and may not be configured."
+#if defined(MBEDTLS_DES_C) //no-check-names
+#  error "MBEDTLS_DES_C was removed in Mbed TLS 4.0." //no-check-names
 #endif
-#if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_DES_C
-#  define MBEDTLS_DES_C
-#endif
-#undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_DES_C
 
 #if defined(MBEDTLS_DES_CRYPT_ECB_ALT) //no-check-names
 #  error "MBEDTLS_DES_CRYPT_ECB_ALT was removed in Mbed TLS 4.0." //no-check-names
@@ -373,13 +365,9 @@
 #  error "MBEDTLS_DHM_C was removed in Mbed TLS 4.0." //no-check-names
 #endif
 
-#if defined(MBEDTLS_ECDH_C) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECDH_C
-#  error "MBEDTLS_ECDH_C must be configured in psa/crypto_config.h."
+#if defined(MBEDTLS_ECDH_C) //no-check-names
+#  error "MBEDTLS_ECDH_C was removed in Mbed TLS 4.0." //no-check-names
 #endif
-#if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECDH_C
-#  define MBEDTLS_ECDH_C
-#endif
-#undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECDH_C
 
 #if defined(MBEDTLS_ECDH_COMPUTE_SHARED_ALT) //no-check-names
 #  error "MBEDTLS_ECDH_COMPUTE_SHARED_ALT was removed in Mbed TLS 4.0." //no-check-names
@@ -397,8 +385,8 @@
 #endif
 #undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECDH_VARIANT_EVEREST_ENABLED
 
-#if defined(MBEDTLS_ECDSA_C) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECDSA_C
-#  error "MBEDTLS_ECDSA_C must be configured in psa/crypto_config.h."
+#if defined(MBEDTLS_ECDSA_C)
+#  error "MBEDTLS_ECDSA_C is an internal macro of TF-PSA-Crypto and may not be configured."
 #endif
 #if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECDSA_C
 #  define MBEDTLS_ECDSA_C
@@ -429,8 +417,8 @@
 #  error "MBEDTLS_ECJPAKE_ALT was removed in Mbed TLS 4.0." //no-check-names
 #endif
 
-#if defined(MBEDTLS_ECJPAKE_C) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECJPAKE_C
-#  error "MBEDTLS_ECJPAKE_C must be configured in psa/crypto_config.h."
+#if defined(MBEDTLS_ECJPAKE_C)
+#  error "MBEDTLS_ECJPAKE_C is an internal macro of TF-PSA-Crypto and may not be configured."
 #endif
 #if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECJPAKE_C
 #  define MBEDTLS_ECJPAKE_C
@@ -445,8 +433,8 @@
 #  error "MBEDTLS_ECP_ALT was removed in Mbed TLS 4.0." //no-check-names
 #endif
 
-#if defined(MBEDTLS_ECP_C) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_C
-#  error "MBEDTLS_ECP_C must be configured in psa/crypto_config.h."
+#if defined(MBEDTLS_ECP_C)
+#  error "MBEDTLS_ECP_C is an internal macro of TF-PSA-Crypto and may not be configured."
 #endif
 #if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_C
 #  define MBEDTLS_ECP_C
@@ -461,61 +449,53 @@
 #  error "MBEDTLS_ECP_DOUBLE_JAC_ALT was removed in Mbed TLS 4.0." //no-check-names
 #endif
 
-#if defined(MBEDTLS_ECP_DP_BP256R1_ENABLED) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_BP256R1_ENABLED
-#  error "MBEDTLS_ECP_DP_BP256R1_ENABLED must be configured in psa/crypto_config.h."
+#if defined(MBEDTLS_ECP_DP_BP256R1_ENABLED)
+#  error "MBEDTLS_ECP_DP_BP256R1_ENABLED is an internal macro of TF-PSA-Crypto and may not be configured."
 #endif
 #if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_BP256R1_ENABLED
 #  define MBEDTLS_ECP_DP_BP256R1_ENABLED
 #endif
 #undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_BP256R1_ENABLED
 
-#if defined(MBEDTLS_ECP_DP_BP384R1_ENABLED) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_BP384R1_ENABLED
-#  error "MBEDTLS_ECP_DP_BP384R1_ENABLED must be configured in psa/crypto_config.h."
+#if defined(MBEDTLS_ECP_DP_BP384R1_ENABLED)
+#  error "MBEDTLS_ECP_DP_BP384R1_ENABLED is an internal macro of TF-PSA-Crypto and may not be configured."
 #endif
 #if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_BP384R1_ENABLED
 #  define MBEDTLS_ECP_DP_BP384R1_ENABLED
 #endif
 #undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_BP384R1_ENABLED
 
-#if defined(MBEDTLS_ECP_DP_BP512R1_ENABLED) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_BP512R1_ENABLED
-#  error "MBEDTLS_ECP_DP_BP512R1_ENABLED must be configured in psa/crypto_config.h."
+#if defined(MBEDTLS_ECP_DP_BP512R1_ENABLED)
+#  error "MBEDTLS_ECP_DP_BP512R1_ENABLED is an internal macro of TF-PSA-Crypto and may not be configured."
 #endif
 #if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_BP512R1_ENABLED
 #  define MBEDTLS_ECP_DP_BP512R1_ENABLED
 #endif
 #undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_BP512R1_ENABLED
 
-#if defined(MBEDTLS_ECP_DP_CURVE25519_ENABLED) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_CURVE25519_ENABLED
-#  error "MBEDTLS_ECP_DP_CURVE25519_ENABLED must be configured in psa/crypto_config.h."
+#if defined(MBEDTLS_ECP_DP_CURVE25519_ENABLED)
+#  error "MBEDTLS_ECP_DP_CURVE25519_ENABLED is an internal macro of TF-PSA-Crypto and may not be configured."
 #endif
 #if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_CURVE25519_ENABLED
 #  define MBEDTLS_ECP_DP_CURVE25519_ENABLED
 #endif
 #undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_CURVE25519_ENABLED
 
-#if defined(MBEDTLS_ECP_DP_CURVE448_ENABLED) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_CURVE448_ENABLED
-#  error "MBEDTLS_ECP_DP_CURVE448_ENABLED must be configured in psa/crypto_config.h."
+#if defined(MBEDTLS_ECP_DP_CURVE448_ENABLED)
+#  error "MBEDTLS_ECP_DP_CURVE448_ENABLED is an internal macro of TF-PSA-Crypto and may not be configured."
 #endif
 #if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_CURVE448_ENABLED
 #  define MBEDTLS_ECP_DP_CURVE448_ENABLED
 #endif
 #undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_CURVE448_ENABLED
 
-#if defined(MBEDTLS_ECP_DP_SECP192K1_ENABLED) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_SECP192K1_ENABLED
-#  error "MBEDTLS_ECP_DP_SECP192K1_ENABLED must be configured in psa/crypto_config.h."
+#if defined(MBEDTLS_ECP_DP_SECP192K1_ENABLED) //no-check-names
+#  error "MBEDTLS_ECP_DP_SECP192K1_ENABLED was removed in Mbed TLS 4.0." //no-check-names
 #endif
-#if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_SECP192K1_ENABLED
-#  define MBEDTLS_ECP_DP_SECP192K1_ENABLED
-#endif
-#undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_SECP192K1_ENABLED
 
-#if defined(MBEDTLS_ECP_DP_SECP192R1_ENABLED) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_SECP192R1_ENABLED
-#  error "MBEDTLS_ECP_DP_SECP192R1_ENABLED must be configured in psa/crypto_config.h."
+#if defined(MBEDTLS_ECP_DP_SECP192R1_ENABLED) //no-check-names
+#  error "MBEDTLS_ECP_DP_SECP192R1_ENABLED was removed in Mbed TLS 4.0." //no-check-names
 #endif
-#if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_SECP192R1_ENABLED
-#  define MBEDTLS_ECP_DP_SECP192R1_ENABLED
-#endif
-#undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_SECP192R1_ENABLED
 
 #if defined(MBEDTLS_ECP_DP_SECP224K1_ENABLED) //no-check-names
 #  error "MBEDTLS_ECP_DP_SECP224K1_ENABLED was removed in Mbed TLS 4.0." //no-check-names
@@ -525,32 +505,32 @@
 #  error "MBEDTLS_ECP_DP_SECP224R1_ENABLED was removed in Mbed TLS 4.0." //no-check-names
 #endif
 
-#if defined(MBEDTLS_ECP_DP_SECP256K1_ENABLED) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_SECP256K1_ENABLED
-#  error "MBEDTLS_ECP_DP_SECP256K1_ENABLED must be configured in psa/crypto_config.h."
+#if defined(MBEDTLS_ECP_DP_SECP256K1_ENABLED)
+#  error "MBEDTLS_ECP_DP_SECP256K1_ENABLED is an internal macro of TF-PSA-Crypto and may not be configured."
 #endif
 #if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_SECP256K1_ENABLED
 #  define MBEDTLS_ECP_DP_SECP256K1_ENABLED
 #endif
 #undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_SECP256K1_ENABLED
 
-#if defined(MBEDTLS_ECP_DP_SECP256R1_ENABLED) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_SECP256R1_ENABLED
-#  error "MBEDTLS_ECP_DP_SECP256R1_ENABLED must be configured in psa/crypto_config.h."
+#if defined(MBEDTLS_ECP_DP_SECP256R1_ENABLED)
+#  error "MBEDTLS_ECP_DP_SECP256R1_ENABLED is an internal macro of TF-PSA-Crypto and may not be configured."
 #endif
 #if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_SECP256R1_ENABLED
 #  define MBEDTLS_ECP_DP_SECP256R1_ENABLED
 #endif
 #undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_SECP256R1_ENABLED
 
-#if defined(MBEDTLS_ECP_DP_SECP384R1_ENABLED) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_SECP384R1_ENABLED
-#  error "MBEDTLS_ECP_DP_SECP384R1_ENABLED must be configured in psa/crypto_config.h."
+#if defined(MBEDTLS_ECP_DP_SECP384R1_ENABLED)
+#  error "MBEDTLS_ECP_DP_SECP384R1_ENABLED is an internal macro of TF-PSA-Crypto and may not be configured."
 #endif
 #if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_SECP384R1_ENABLED
 #  define MBEDTLS_ECP_DP_SECP384R1_ENABLED
 #endif
 #undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_SECP384R1_ENABLED
 
-#if defined(MBEDTLS_ECP_DP_SECP521R1_ENABLED) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_SECP521R1_ENABLED
-#  error "MBEDTLS_ECP_DP_SECP521R1_ENABLED must be configured in psa/crypto_config.h."
+#if defined(MBEDTLS_ECP_DP_SECP521R1_ENABLED)
+#  error "MBEDTLS_ECP_DP_SECP521R1_ENABLED is an internal macro of TF-PSA-Crypto and may not be configured."
 #endif
 #if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_ECP_DP_SECP521R1_ENABLED
 #  define MBEDTLS_ECP_DP_SECP521R1_ENABLED
@@ -1613,21 +1593,13 @@
 #endif
 #undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_SHA256_SMALLER
 
-#if defined(MBEDTLS_SHA256_USE_A64_CRYPTO_IF_PRESENT) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_SHA256_USE_A64_CRYPTO_IF_PRESENT
-#  error "MBEDTLS_SHA256_USE_A64_CRYPTO_IF_PRESENT must be configured in psa/crypto_config.h."
+#if defined(MBEDTLS_SHA256_USE_A64_CRYPTO_IF_PRESENT) //no-check-names
+#  error "MBEDTLS_SHA256_USE_A64_CRYPTO_IF_PRESENT was removed in Mbed TLS 4.0." //no-check-names
 #endif
-#if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_SHA256_USE_A64_CRYPTO_IF_PRESENT
-#  define MBEDTLS_SHA256_USE_A64_CRYPTO_IF_PRESENT
-#endif
-#undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_SHA256_USE_A64_CRYPTO_IF_PRESENT
 
-#if defined(MBEDTLS_SHA256_USE_A64_CRYPTO_ONLY) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_SHA256_USE_A64_CRYPTO_ONLY
-#  error "MBEDTLS_SHA256_USE_A64_CRYPTO_ONLY must be configured in psa/crypto_config.h."
+#if defined(MBEDTLS_SHA256_USE_A64_CRYPTO_ONLY) //no-check-names
+#  error "MBEDTLS_SHA256_USE_A64_CRYPTO_ONLY was removed in Mbed TLS 4.0." //no-check-names
 #endif
-#if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_SHA256_USE_A64_CRYPTO_ONLY
-#  define MBEDTLS_SHA256_USE_A64_CRYPTO_ONLY
-#endif
-#undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_SHA256_USE_A64_CRYPTO_ONLY
 
 #if defined(MBEDTLS_SHA256_USE_ARMV8_A_CRYPTO_IF_PRESENT) && !MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_SHA256_USE_ARMV8_A_CRYPTO_IF_PRESENT
 #  error "MBEDTLS_SHA256_USE_ARMV8_A_CRYPTO_IF_PRESENT must be configured in psa/crypto_config.h."
@@ -1653,9 +1625,13 @@
 #endif
 #undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_SHA384_C
 
-#if defined(MBEDTLS_SHA3_C) //no-check-names
-#  error "MBEDTLS_SHA3_C was removed in Mbed TLS 4.0." //no-check-names
+#if defined(MBEDTLS_SHA3_C)
+#  error "MBEDTLS_SHA3_C is an internal macro of TF-PSA-Crypto and may not be configured."
 #endif
+#if MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_SHA3_C
+#  define MBEDTLS_SHA3_C
+#endif
+#undef MBEDTLS_CONFIG_CHECK_WASSET_MBEDTLS_SHA3_C
 
 #if defined(MBEDTLS_SHA512_ALT) //no-check-names
 #  error "MBEDTLS_SHA512_ALT was removed in Mbed TLS 4.0." //no-check-names
@@ -2169,13 +2145,9 @@
 #endif
 #undef MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_ECC_MONTGOMERY_448
 
-#if defined(PSA_WANT_ECC_SECP_K1_192) && !MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_ECC_SECP_K1_192
-#  error "PSA_WANT_ECC_SECP_K1_192 must be configured in psa/crypto_config.h."
+#if defined(PSA_WANT_ECC_SECP_K1_192) //no-check-names
+#  error "PSA_WANT_ECC_SECP_K1_192 was removed in Mbed TLS 4.0." //no-check-names
 #endif
-#if MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_ECC_SECP_K1_192
-#  define PSA_WANT_ECC_SECP_K1_192
-#endif
-#undef MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_ECC_SECP_K1_192
 
 #if defined(PSA_WANT_ECC_SECP_K1_256) && !MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_ECC_SECP_K1_256
 #  error "PSA_WANT_ECC_SECP_K1_256 must be configured in psa/crypto_config.h."
@@ -2185,13 +2157,9 @@
 #endif
 #undef MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_ECC_SECP_K1_256
 
-#if defined(PSA_WANT_ECC_SECP_R1_192) && !MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_ECC_SECP_R1_192
-#  error "PSA_WANT_ECC_SECP_R1_192 must be configured in psa/crypto_config.h."
+#if defined(PSA_WANT_ECC_SECP_R1_192) //no-check-names
+#  error "PSA_WANT_ECC_SECP_R1_192 was removed in Mbed TLS 4.0." //no-check-names
 #endif
-#if MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_ECC_SECP_R1_192
-#  define PSA_WANT_ECC_SECP_R1_192
-#endif
-#undef MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_ECC_SECP_R1_192
 
 #if defined(PSA_WANT_ECC_SECP_R1_224) //no-check-names
 #  error "PSA_WANT_ECC_SECP_R1_224 was removed in Mbed TLS 4.0." //no-check-names
@@ -2261,13 +2229,9 @@
 #endif
 #undef MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_KEY_TYPE_DERIVE
 
-#if defined(PSA_WANT_KEY_TYPE_DES) && !MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_KEY_TYPE_DES
-#  error "PSA_WANT_KEY_TYPE_DES must be configured in psa/crypto_config.h."
+#if defined(PSA_WANT_KEY_TYPE_DES) //no-check-names
+#  error "PSA_WANT_KEY_TYPE_DES was removed in Mbed TLS 4.0." //no-check-names
 #endif
-#if MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_KEY_TYPE_DES
-#  define PSA_WANT_KEY_TYPE_DES
-#endif
-#undef MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_KEY_TYPE_DES
 
 #if defined(PSA_WANT_KEY_TYPE_DH_KEY_PAIR_BASIC) && !MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_KEY_TYPE_DH_KEY_PAIR_BASIC
 #  error "PSA_WANT_KEY_TYPE_DH_KEY_PAIR_BASIC must be configured in psa/crypto_config.h."
@@ -2317,13 +2281,9 @@
 #endif
 #undef MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_KEY_TYPE_DH_PUBLIC_KEY
 
-#if defined(PSA_WANT_KEY_TYPE_ECC_KEY_PAIR) && !MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_KEY_TYPE_ECC_KEY_PAIR
-#  error "PSA_WANT_KEY_TYPE_ECC_KEY_PAIR must be configured in psa/crypto_config.h."
+#if defined(PSA_WANT_KEY_TYPE_ECC_KEY_PAIR) //no-check-names
+#  error "PSA_WANT_KEY_TYPE_ECC_KEY_PAIR was removed in Mbed TLS 4.0." //no-check-names
 #endif
-#if MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_KEY_TYPE_ECC_KEY_PAIR
-#  define PSA_WANT_KEY_TYPE_ECC_KEY_PAIR
-#endif
-#undef MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_KEY_TYPE_ECC_KEY_PAIR
 
 #if defined(PSA_WANT_KEY_TYPE_ECC_KEY_PAIR_BASIC) && !MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_KEY_TYPE_ECC_KEY_PAIR_BASIC
 #  error "PSA_WANT_KEY_TYPE_ECC_KEY_PAIR_BASIC must be configured in psa/crypto_config.h."
@@ -2405,13 +2365,9 @@
 #endif
 #undef MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_KEY_TYPE_RAW_DATA
 
-#if defined(PSA_WANT_KEY_TYPE_RSA_KEY_PAIR) && !MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_KEY_TYPE_RSA_KEY_PAIR
-#  error "PSA_WANT_KEY_TYPE_RSA_KEY_PAIR must be configured in psa/crypto_config.h."
+#if defined(PSA_WANT_KEY_TYPE_RSA_KEY_PAIR) //no-check-names
+#  error "PSA_WANT_KEY_TYPE_RSA_KEY_PAIR was removed in Mbed TLS 4.0." //no-check-names
 #endif
-#if MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_KEY_TYPE_RSA_KEY_PAIR
-#  define PSA_WANT_KEY_TYPE_RSA_KEY_PAIR
-#endif
-#undef MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_KEY_TYPE_RSA_KEY_PAIR
 
 #if defined(PSA_WANT_KEY_TYPE_RSA_KEY_PAIR_BASIC) && !MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_KEY_TYPE_RSA_KEY_PAIR_BASIC
 #  error "PSA_WANT_KEY_TYPE_RSA_KEY_PAIR_BASIC must be configured in psa/crypto_config.h."
@@ -2460,6 +2416,18 @@
 #  define PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY
 #endif
 #undef MBEDTLS_CONFIG_CHECK_WASSET_PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY
+
+#if defined(MBEDTLS_CONFIG_ADJUST_SSL_H)
+#  error "MBEDTLS_CONFIG_ADJUST_SSL_H is not a valid configuration option."
+#endif
+
+#if defined(MBEDTLS_CONFIG_ADJUST_X509_H)
+#  error "MBEDTLS_CONFIG_ADJUST_X509_H is not a valid configuration option."
+#endif
+
+#if defined(MBEDTLS_SSL_TLS1_2_SOME_ECC)
+#  error "MBEDTLS_SSL_TLS1_2_SOME_ECC is not a valid configuration option."
+#endif
 
 /* *INDENT-ON* */
 

@@ -620,4 +620,4 @@ static inline void mbedtls_asn1_free_named_data_list_shallow(mbedtls_asn1_named_
 // }
 // #endif
 
-#endif /* asn1.h */
+#endif /* MBEDTLS_ASN1_H */

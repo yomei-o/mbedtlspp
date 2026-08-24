@@ -8,8 +8,8 @@
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
-#ifndef MBEDTLS_PK_INTERNAL_H
-#define MBEDTLS_PK_INTERNAL_H
+#ifndef TF_PSA_CRYPTO_PK_INTERNAL_H
+#define TF_PSA_CRYPTO_PK_INTERNAL_H
 
 #include "mbedtls_pk.hpp"
 #if defined(MBEDTLS_PK_HAVE_PRIVATE_HEADER)
@@ -20,7 +20,6 @@
 #include "mbedtls_private_ecp.hpp"
 #endif
 
-#if defined(MBEDTLS_PSA_CRYPTO_CLIENT)
 #include "psa_crypto.hpp"
 
 #include "psa_util_internal.hpp"
@@ -31,7 +30,6 @@
 #define PSA_PK_ECDSA_TO_MBEDTLS_ERR(status) PSA_TO_MBEDTLS_ERR_LIST(status,   \
                                                                     psa_to_pk_ecdsa_errors,        \
                                                                     psa_pk_status_to_mbedtls)
-#endif /* MBEDTLS_PSA_CRYPTO_CLIENT */
 
 /* Headers/footers for PEM files */
 #define PEM_BEGIN_PUBLIC_KEY    "-----BEGIN PUBLIC KEY-----"
@@ -46,6 +44,28 @@
 #define PEM_END_PRIVATE_KEY_PKCS8   "-----END PRIVATE KEY-----"
 #define PEM_BEGIN_ENCRYPTED_PRIVATE_KEY_PKCS8 "-----BEGIN ENCRYPTED PRIVATE KEY-----"
 #define PEM_END_ENCRYPTED_PRIVATE_KEY_PKCS8   "-----END ENCRYPTED PRIVATE KEY-----"
+
+/*
+ * We're trying to statisfy two kinds of users:
+ * - those who don't want to use the heap;
+ * - those who can't afford large stack buffers.
+ *
+ * The current compromise is that if ECC is the only key type supported in PK,
+ * then we export keys on the stack, and otherwise we use the heap.
+ *
+ * Note: add && !ML-DSA when adding support for ML-DSA */
+#if !defined(PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY)
+#define PK_EXPORT_KEYS_ON_THE_STACK
+#endif
+
+#if defined(PK_EXPORT_KEYS_ON_THE_STACK)
+/* We know for ECC, pubkey are longer than privkeys, but double check */
+#define PK_EXPORT_KEY_STACK_BUFFER_SIZE  MBEDTLS_PSA_MAX_EC_PUBKEY_LENGTH
+#if MBEDTLS_PSA_MAX_EC_KEY_PAIR_LENGTH > PK_EXPORT_KEY_STACK_BUFFER_SIZE
+#undef PK_EXPORT_KEY_STACK_BUFFER_SIZE
+#define PK_EXPORT_KEY_STACK_BUFFER_SIZE  MBEDTLS_PSA_MAX_EC_KEY_PAIR_LENGTH
+#endif
+#endif
 
 #if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
 
@@ -119,22 +139,6 @@ static inline int mbedtls_pk_ecc_set_key(mbedtls_pk_context *pk, unsigned char *
  * - another error code otherwise.
  */
 static inline int mbedtls_pk_ecc_set_pubkey(mbedtls_pk_context *pk, const unsigned char *pub, size_t pub_len);
-
-/*
- * Derive a public key from its private counterpart.
- * Computationally intensive, only use when public key is not available.
- *
- * [in/out] pk: in: must have the private key set, see mbedtls_pk_ecc_set_key().
- *              out: will have the public key set.
- * [in] prv, prv_len: the raw private key (see note below).
- *
- * Note: the private key information is always available from pk,
- * however for convenience the serialized version is also passed,
- * as it's available at each calling site, and useful in some configs
- * (as otherwise we would have to re-serialize it from the pk context).
- */
-static inline int mbedtls_pk_ecc_set_pubkey_from_prv(mbedtls_pk_context *pk,
-                                       const unsigned char *prv, size_t prv_len);
 #endif /* PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY */
 
 #if defined(PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY)
@@ -147,36 +151,19 @@ static inline int mbedtls_pk_rsa_set_key(mbedtls_pk_context *pk, const unsigned 
  * Parse an RSA public key.
  */
 static inline int mbedtls_pk_rsa_set_pubkey(mbedtls_pk_context *pk, const unsigned char *key, size_t key_len);
-
-/*
- * Set the public key field in PK context by exporting it from the private key.
- */
-static inline int mbedtls_pk_rsa_set_pubkey_from_prv(mbedtls_pk_context *pk);
-
-/*
- * Set the padding for the RSA key.
- */
-static inline  int mbedtls_pk_set_rsa_padding(mbedtls_pk_context *pk, mbedtls_pk_rsa_padding_t type)
-{
-    if ((type != MBEDTLS_PK_RSA_PKCS_V15) && (type != MBEDTLS_PK_RSA_PKCS_V21)) {
-        return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
-    }
-
-    pk->rsa_padding = type;
-
-    return 0;
-}
-
-/*
- * Set the hash algorithm to be used with RSA public key.
- */
-static inline  int mbedtls_pk_set_rsa_hash_alg(mbedtls_pk_context *pk, psa_algorithm_t alg)
-{
-    pk->rsa_hash_alg = alg;
-
-    return 0;
-}
 #endif /* PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY */
+
+/*
+ * Fill the public key fields of the given PK context by exporting it from
+ * the private counterpart.
+ *
+ * [in/out] pk: must have been populated with private key.
+ *
+ * Return:
+ * - 0 on success;
+ * - error code otherwise.
+ */
+static inline int mbedtls_pk_set_pubkey_from_prv(mbedtls_pk_context *pk);
 
 #if defined(MBEDTLS_TEST_HOOKS)
 
@@ -198,4 +185,4 @@ static inline MBEDTLS_STATIC_TESTABLE int mbedtls_pk_parse_key_pkcs8_unencrypted
 static inline int mbedtls_pk_load_file(const char *path, unsigned char **buf, size_t *n);
 #endif
 
-#endif /* MBEDTLS_PK_INTERNAL_H */
+#endif /* TF_PSA_CRYPTO_PK_INTERNAL_H */

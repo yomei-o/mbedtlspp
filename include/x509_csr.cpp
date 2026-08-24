@@ -553,7 +553,7 @@ static inline int mbedtls_x509_csr_info(char *buf, size_t size, const char *pref
     MBEDTLS_X509_SAFE_SNPRINTF;
 
     if ((ret = mbedtls_x509_key_size_helper(key_size_str, MBEDTLS_BEFORE_COLON,
-                                            mbedtls_pk_get_name(&csr->pk))) != 0) {
+                                            mbedtls_x509_pk_type_as_string(&csr->pk))) != 0) {
         return ret;
     }
 

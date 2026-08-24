@@ -1,5 +1,5 @@
 /**
- * \file psa/crypto_adjust_config_key_pair_types.h
+ * \file tf-psa-crypto/private/crypto_adjust_config_key_pair_types.h
  * \brief Adjust PSA configuration for key pair types.
  *
  * This is an internal header. Do not include it directly.
@@ -18,16 +18,8 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#ifndef PSA_CRYPTO_ADJUST_KEYPAIR_TYPES_H
-#define PSA_CRYPTO_ADJUST_KEYPAIR_TYPES_H
-
-#if !defined(TF_PSA_CRYPTO_CONFIG_FILES_READ)
-#error "Do not include psa/crypto_adjust_*.h manually! This can lead to problems, " \
-    "up to and including runtime errors such as buffer overflows. " \
-    "If you're trying to fix a complaint from check_config.h, just remove " \
-    "it from your configuration file: since Mbed TLS 3.0, it is included " \
-    "automatically at the right point."
-#endif /* */
+#ifndef TF_PSA_CRYPTO_PRIVATE_CRYPTO_ADJUST_CONFIG_KEY_PAIR_TYPES_H
+#define TF_PSA_CRYPTO_PRIVATE_CRYPTO_ADJUST_CONFIG_KEY_PAIR_TYPES_H
 
 /*****************************************************************
  * ANYTHING -> BASIC
@@ -98,4 +90,4 @@
 #define PSA_WANT_KEY_TYPE_DH_KEY_PAIR_EXPORT 1
 #endif
 
-#endif /* PSA_CRYPTO_ADJUST_KEYPAIR_TYPES_H */
+#endif /* TF_PSA_CRYPTO_PRIVATE_CRYPTO_ADJUST_CONFIG_KEY_PAIR_TYPES_H */

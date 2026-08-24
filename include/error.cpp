@@ -1,11 +1,11 @@
-/*
+/* -*-c-*-
  *  Error message information
  *
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "tf_psa_crypto_common.hpp"
+#include "mbedtls_common.hpp"
 
 #include "mbedtls_error.hpp"
 
@@ -266,10 +266,6 @@ static inline  const char *mbedtls_high_level_strerr(int error_code)
 #endif /* MBEDTLS_CIPHER_C */
 
 #if defined(MBEDTLS_ECP_C)
-        case -(MBEDTLS_ERR_ECP_FEATURE_UNAVAILABLE):
-            return( "ECP - The requested feature is not available, for example, the requested curve is not supported" );
-        case -(MBEDTLS_ERR_ECP_RANDOM_FAILED):
-            return( "ECP - Generation of random value, such as ephemeral key, failed" );
         case -(MBEDTLS_ERR_ECP_INVALID_KEY):
             return( "ECP - Invalid private or public key" );
 #endif /* MBEDTLS_ECP_C */

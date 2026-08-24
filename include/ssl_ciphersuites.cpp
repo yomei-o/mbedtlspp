@@ -902,17 +902,17 @@ static inline size_t mbedtls_ssl_ciphersuite_get_cipher_key_bitlen(const mbedtls
 }
 
 #if defined(MBEDTLS_PK_C)
-static inline mbedtls_pk_type_t mbedtls_ssl_get_ciphersuite_sig_pk_alg(const mbedtls_ssl_ciphersuite_t *info)
+static inline mbedtls_pk_sigalg_t mbedtls_ssl_get_ciphersuite_sig_pk_alg(const mbedtls_ssl_ciphersuite_t *info)
 {
     switch (info->key_exchange) {
         case MBEDTLS_KEY_EXCHANGE_ECDHE_RSA:
-            return MBEDTLS_PK_RSA;
+            return MBEDTLS_PK_SIGALG_RSA_PKCS1V15;
 
         case MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA:
-            return MBEDTLS_PK_ECDSA;
+            return MBEDTLS_PK_SIGALG_ECDSA;
 
         default:
-            return MBEDTLS_PK_NONE;
+            return MBEDTLS_PK_SIGALG_NONE;
     }
 }
 
@@ -943,17 +943,17 @@ static inline psa_key_usage_t mbedtls_ssl_get_ciphersuite_sig_pk_psa_usage(const
     }
 }
 
-static inline mbedtls_pk_type_t mbedtls_ssl_get_ciphersuite_sig_alg(const mbedtls_ssl_ciphersuite_t *info)
+static inline mbedtls_pk_sigalg_t mbedtls_ssl_get_ciphersuite_sig_alg(const mbedtls_ssl_ciphersuite_t *info)
 {
     switch (info->key_exchange) {
         case MBEDTLS_KEY_EXCHANGE_ECDHE_RSA:
-            return MBEDTLS_PK_RSA;
+            return MBEDTLS_PK_SIGALG_RSA_PKCS1V15;
 
         case MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA:
-            return MBEDTLS_PK_ECDSA;
+            return MBEDTLS_PK_SIGALG_ECDSA;
 
         default:
-            return MBEDTLS_PK_NONE;
+            return MBEDTLS_PK_SIGALG_NONE;
     }
 }
 

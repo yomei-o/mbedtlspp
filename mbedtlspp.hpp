@@ -11,6 +11,7 @@
 #include "threading.cpp"
 #include "platform.cpp"
 #include "psa_util.cpp"
+#include "psa_util_internal.cpp"
 #include "x509_crt.cpp"
 #include "aesce.cpp"
 #include "aes.cpp"
@@ -34,7 +35,6 @@
 #include "constant_time.cpp"
 #include "ctr_drbg.cpp"
 #include "debug.cpp"
-#include "ecdh.cpp"
 #include "ecdsa.cpp"
 #include "ecjpake.cpp"
 #include "ecp.cpp"
@@ -112,6 +112,9 @@
 #include "x509_oid.cpp"
 #include "ssl_debug_helpers_generated.cpp"
 #include "error.cpp"
+#include "chacha20_neon.cpp"
+#include "psa_crypto_random.cpp"
+#include "psa_crypto_xof.cpp"
 
 #undef write
 #undef read

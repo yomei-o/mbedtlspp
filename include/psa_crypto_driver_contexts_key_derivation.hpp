@@ -26,7 +26,7 @@
 #include "psa_crypto_driver_common.hpp"
 
 /* Include the context structure definitions for the Mbed TLS software drivers */
-#include "psa_crypto_builtin_key_derivation.hpp"
+#include "mbedtls_private_crypto_builtin_key_derivation.hpp"
 
 /* Include the context structure definitions for those drivers that were
  * declared during the autogeneration process. */

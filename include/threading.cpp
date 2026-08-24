@@ -5,14 +5,6 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-/*
- * Ensure gmtime_r is available even with -std=c99; must be defined before
- * mbedtls_config.h, which pulls in glibc's features.h. Harmless on other platforms.
- */
-#if !defined(_POSIX_C_SOURCE)
-#define _POSIX_C_SOURCE 200112L
-#endif
-
 #include "tf_psa_crypto_common.hpp"
 
 #if defined(MBEDTLS_THREADING_C)
@@ -23,9 +15,7 @@
 
 #if defined(MBEDTLS_HAVE_TIME_DATE) && !defined(MBEDTLS_PLATFORM_GMTIME_R_ALT)
 
-#if !defined(_WIN32) && (defined(unix) || \
-    defined(__unix) || defined(__unix__) || (defined(__APPLE__) && \
-    defined(__MACH__)))
+#if defined(MBEDTLS_PLATFORM_IS_UNIXLIKE)
 #include <unistd.h>
 #endif /* !_WIN32 && (unix || __unix || __unix__ ||
         * (__APPLE__ && __MACH__)) */

@@ -38,7 +38,7 @@ static inline void mbedtls_entropy_init(mbedtls_entropy_context *ctx)
 
     /* Note: the list of sources here must remain consistent with the
      * definitions of MBEDTLS_ENTROPY_TRUE_SOURCES in
-     * "psa/crypto_adjust_config_derived.h". */
+     * "tf-psa-crypto/private/crypto_adjust_config_derived.h". */
 
     /* In principle, we could support both a built-in source and a custom
      * source. However, it isn't a common need. So for now the two

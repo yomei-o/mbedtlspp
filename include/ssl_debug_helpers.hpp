@@ -36,6 +36,8 @@ static inline const char *mbedtls_ssl_named_group_to_str(uint16_t in);
 
 static inline const char *mbedtls_ssl_get_extension_name(unsigned int extension_type);
 
+static inline const char *mbedtls_ssl_get_hs_msg_name(int hs_msg_type);
+
 static inline void mbedtls_ssl_print_extensions(const mbedtls_ssl_context *ssl,
                                   int level, const char *file, int line,
                                   int hs_msg_type, uint32_t extensions_mask,

@@ -17,8 +17,8 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#ifndef MBEDTLS_POLY1305_H
-#define MBEDTLS_POLY1305_H
+#ifndef TF_PSA_CRYPTO_MBEDTLS_PRIVATE_POLY1305_H
+#define TF_PSA_CRYPTO_MBEDTLS_PRIVATE_POLY1305_H
 #include "mbedtls_private_access.hpp"
 
 #include "tf-psa-crypto_build_info.hpp"
@@ -162,4 +162,4 @@ static inline int mbedtls_poly1305_self_test(int verbose);
 // }
 // #endif
 
-#endif /* MBEDTLS_POLY1305_H */
+#endif /* TF_PSA_CRYPTO_MBEDTLS_PRIVATE_POLY1305_H */

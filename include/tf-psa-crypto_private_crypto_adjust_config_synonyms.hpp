@@ -1,5 +1,5 @@
 /**
- * \file psa/crypto_adjust_config_synonyms.h
+ * \file tf-psa-crypto/private/crypto_adjust_config_synonyms.h
  * \brief Adjust PSA configuration: enable quasi-synonyms
  *
  * This is an internal header. Do not include it directly.
@@ -13,16 +13,8 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#ifndef PSA_CRYPTO_ADJUST_CONFIG_SYNONYMS_H
-#define PSA_CRYPTO_ADJUST_CONFIG_SYNONYMS_H
-
-#if !defined(TF_PSA_CRYPTO_CONFIG_FILES_READ)
-#error "Do not include psa/crypto_adjust_*.h manually! This can lead to problems, " \
-    "up to and including runtime errors such as buffer overflows. " \
-    "If you're trying to fix a complaint from check_config.h, just remove " \
-    "it from your configuration file: since Mbed TLS 3.0, it is included " \
-    "automatically at the right point."
-#endif /* */
+#ifndef TF_PSA_CRYPTO_PRIVATE_CRYPTO_ADJUST_CONFIG_SYNONYMS_H
+#define TF_PSA_CRYPTO_PRIVATE_CRYPTO_ADJUST_CONFIG_SYNONYMS_H
 
 /****************************************************************/
 /* De facto synonyms */
@@ -46,4 +38,4 @@
 #define PSA_WANT_ALG_RSA_PSS_ANY_SALT PSA_WANT_ALG_RSA_PSS
 #endif
 
-#endif /* PSA_CRYPTO_ADJUST_CONFIG_SYNONYMS_H */
+#endif /* TF_PSA_CRYPTO_PRIVATE_CRYPTO_ADJUST_CONFIG_SYNONYMS_H */

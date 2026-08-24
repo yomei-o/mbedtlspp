@@ -9,6 +9,7 @@
 
 #if defined(MBEDTLS_BIGNUM_C)
 
+#include <limits.h>
 #include <string.h>
 
 #include "mbedtls_private_error_common.hpp"
@@ -19,6 +20,7 @@
 
 #include "bignum_core.hpp"
 #include "bignum_core_invasive.hpp"
+#include "bignum_internal.hpp"
 #include "bn_mul.hpp"
 #include "constant_time_internal.hpp"
 

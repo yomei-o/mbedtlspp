@@ -19,6 +19,10 @@
 #include "psa_crypto_pake.hpp"
 #include "psa_crypto_rsa.hpp"
 
+#if defined(TF_PSA_CRYPTO_PQCP_MLDSA_ENABLED)
+#include "psa_crypto_mldsa.hpp"
+#endif
+
 #include "mbedtls_platform.hpp"
 /* END-common headers */
 

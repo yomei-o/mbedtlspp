@@ -21,17 +21,7 @@
 
 #include <string.h>
 
-#if defined(MBEDTLS_ECP_C)
-#include "mbedtls_private_bignum.hpp"
-#include "mbedtls_private_ecp.hpp"
-#include "mbedtls_platform_util.hpp"
-#endif
-#if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
-#include "pk_internal.hpp"
-#endif
-#if defined(PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY) || defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
 #include "pkwrite.hpp"
-#endif
 #if defined(MBEDTLS_PEM_WRITE_C)
 #include "mbedtls_pem.hpp"
 #endif
@@ -40,11 +30,6 @@
 #include "psa_util_internal.hpp"
 #include "mbedtls_platform.hpp"
 
-/* Helpers for properly sizing buffers aimed at holding public keys or
- * key-pairs based on build symbols. */
-#define PK_MAX_EC_PUBLIC_KEY_SIZE       PSA_EXPORT_PUBLIC_KEY_MAX_SIZE
-#define PK_MAX_EC_KEY_PAIR_SIZE         MBEDTLS_PSA_MAX_EC_KEY_PAIR_LENGTH
-
 /******************************************************************************
  * Internal functions for RSA keys.
  ******************************************************************************/
@@ -52,28 +37,28 @@
 static inline  int pk_write_rsa_der(unsigned char **p, unsigned char *buf,
                             const mbedtls_pk_context *pk)
 {
-    uint8_t tmp[PSA_EXPORT_KEY_PAIR_MAX_SIZE];
-    size_t tmp_len = 0;
+    psa_status_t status;
+    size_t buf_size = (size_t) (*p - buf);
+    size_t key_len = 0;
 
-    if (psa_export_key(pk->priv_id, tmp, sizeof(tmp), &tmp_len) != PSA_SUCCESS) {
-        return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
+    status = psa_export_key(pk->priv_id, buf, buf_size, &key_len);
+    if (status != PSA_SUCCESS) {
+        return status;
     }
-    /* Ensure there's enough space in the provided buffer before copying data into it. */
-    if (tmp_len > (size_t) (*p - buf)) {
-        mbedtls_platform_zeroize(tmp, sizeof(tmp));
-        return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL;
-    }
-    *p -= tmp_len;
-    memcpy(*p, tmp, tmp_len);
-    mbedtls_platform_zeroize(tmp, sizeof(tmp));
 
-    return (int) tmp_len;
+    /* We wrote to the beginning of the buffer while
+     * we were supposed to write to its end. */
+    *p -= key_len;
+    memmove(*p, buf, key_len);
+    mbedtls_platform_zeroize(buf, *p - buf);
+
+    return (int) key_len;
 }
 
 static inline  int pk_write_rsa_pubkey(unsigned char **p, unsigned char *start,
                                const mbedtls_pk_context *pk)
 {
-    unsigned char tmp_key[MBEDTLS_PK_MAX_RSA_PUBKEY_RAW_LEN];
+    unsigned char tmp_key[PSA_KEY_EXPORT_RSA_PUBLIC_KEY_MAX_SIZE(PSA_VENDOR_RSA_MAX_KEY_BITS)];
     const unsigned char *key_ptr;
     size_t key_len;
 
@@ -114,7 +99,7 @@ static inline  int pk_write_ec_pubkey(unsigned char **p, unsigned char *start,
                               const mbedtls_pk_context *pk)
 {
     size_t len = 0;
-    uint8_t buf[PK_MAX_EC_PUBLIC_KEY_SIZE];
+    uint8_t buf[PSA_KEY_EXPORT_ECC_PUBLIC_KEY_MAX_SIZE(PSA_VENDOR_ECC_MAX_CURVE_BITS)];
 
     if (mbedtls_pk_get_type(pk) == MBEDTLS_PK_OPAQUE) {
         if (psa_export_public_key(pk->priv_id, buf, sizeof(buf), &len) != PSA_SUCCESS) {
@@ -143,7 +128,7 @@ static inline  int pk_write_ec_private(unsigned char **p, unsigned char *start,
 {
     size_t byte_length;
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
-    unsigned char tmp[PK_MAX_EC_KEY_PAIR_SIZE];
+    unsigned char tmp[PSA_KEY_EXPORT_ECC_KEY_PAIR_MAX_SIZE(PSA_VENDOR_ECC_MAX_CURVE_BITS)];
     psa_status_t status;
 
     if (mbedtls_pk_get_type(pk) == MBEDTLS_PK_OPAQUE) {
@@ -475,6 +460,26 @@ static inline int mbedtls_pk_write_key_der(const mbedtls_pk_context *key, unsign
     } else
 #endif /* PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY */
     return MBEDTLS_ERR_PK_FEATURE_UNAVAILABLE;
+}
+
+/******************************************************************************
+ * Public functions for public keys in "PSA friendly" format.
+ ******************************************************************************/
+static inline int mbedtls_pk_write_pubkey_psa(const mbedtls_pk_context *ctx, unsigned char *buf,
+                                size_t buf_size, size_t *buf_len)
+{
+    if (ctx->pub_raw_len == 0) {
+        return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
+    }
+
+    if (buf_size < ctx->pub_raw_len) {
+        return MBEDTLS_ERR_PK_BUFFER_TOO_SMALL;
+    }
+
+    memcpy(buf, ctx->pub_raw, ctx->pub_raw_len);
+    *buf_len = ctx->pub_raw_len;
+
+    return 0;
 }
 
 /******************************************************************************

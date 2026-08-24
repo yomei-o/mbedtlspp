@@ -6,20 +6,6 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-/*
- * Ensure gmtime_r is available even with -std=c99; must be defined before
- * mbedtls_config.h, which pulls in glibc's features.h. Harmless on other platforms
- * except OpenBSD, where it stops us accessing explicit_bzero.
- */
-#if !defined(_POSIX_C_SOURCE) && !defined(__OpenBSD__)
-#define _POSIX_C_SOURCE 200112L
-#endif
-
-#if !defined(_GNU_SOURCE)
-/* Clang requires this to get support for explicit_bzero */
-#define _GNU_SOURCE
-#endif
-
 #include "tf_psa_crypto_common.hpp"
 
 #include "mbedtls_platform_util.hpp"
@@ -28,10 +14,6 @@
 #include "mbedtls_private_error_common.hpp"
 
 #include <stddef.h>
-
-#ifndef __STDC_WANT_LIB_EXT1__
-#define __STDC_WANT_LIB_EXT1__ 1 /* Ask for the C11 gmtime_s() and memset_s() if available */
-#endif
 #include <string.h>
 
 #if defined(_WIN32)
@@ -40,6 +22,7 @@
 
 // Detect platforms known to support explicit_bzero()
 #if defined(__GLIBC__) && (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 25)
+/* Note: requires _GNU_SOURCE when compiling with -pedantic */
 #define MBEDTLS_PLATFORM_HAS_EXPLICIT_BZERO 1
 #elif (defined(__FreeBSD__) && (__FreeBSD_version >= 1100037)) || defined(__OpenBSD__)
 #define MBEDTLS_PLATFORM_HAS_EXPLICIT_BZERO 1
@@ -148,12 +131,9 @@ static inline void mbedtls_zeroize_and_free(void *buf, size_t len)
 
 #if defined(MBEDTLS_HAVE_TIME_DATE) && !defined(MBEDTLS_PLATFORM_GMTIME_R_ALT)
 #include <time.h>
-#if !defined(_WIN32) && (defined(unix) || \
-    defined(__unix) || defined(__unix__) || (defined(__APPLE__) && \
-    defined(__MACH__)) || defined(__midipix__))
+#if defined(MBEDTLS_PLATFORM_IS_UNIXLIKE)
 #include <unistd.h>
-#endif /* !_WIN32 && (unix || __unix || __unix__ ||
-        * (__APPLE__ && __MACH__) || __midipix__) */
+#endif
 
 #if !((defined(_POSIX_VERSION) && _POSIX_VERSION >= 200809L) ||     \
     (defined(_POSIX_THREAD_SAFE_FUNCTIONS) &&                     \
@@ -219,12 +199,10 @@ static inline void (*mbedtls_test_hook_test_fail)(const char *, int, const char 
 #if defined(MBEDTLS_HAVE_TIME) && !defined(MBEDTLS_PLATFORM_MS_TIME_ALT)
 
 #include <time.h>
-#if !defined(_WIN32) && \
-    (defined(unix) || defined(__unix) || defined(__unix__) || \
-    (defined(__APPLE__) && defined(__MACH__)) || defined(__HAIKU__) || defined(__midipix__))
+#if defined(MBEDTLS_PLATFORM_IS_UNIXLIKE)
 #include <unistd.h>
-#endif \
-    /* !_WIN32 && (unix || __unix || __unix__ || (__APPLE__ && __MACH__) || __HAIKU__ || __midipix__) */
+#endif
+
 #if (defined(_POSIX_VERSION) && _POSIX_VERSION >= 199309L) || defined(__HAIKU__)
 static inline mbedtls_ms_time_t mbedtls_ms_time(void)
 {
@@ -265,9 +243,9 @@ static inline mbedtls_ms_time_t mbedtls_ms_time(void)
 
 #if defined(MBEDTLS_PSA_BUILTIN_GET_ENTROPY)
 
-#if !defined(unix) && !defined(__unix__) && !defined(__unix) && \
-    !defined(__APPLE__) && !defined(_WIN32) && !defined(__QNXNTO__) && \
-    !defined(__HAIKU__) && !defined(__midipix__) && !defined(__MVS__)
+#if !defined(MBEDTLS_PLATFORM_IS_UNIXLIKE) && \
+    !defined(__MVS__) /* z/OS */ &&           \
+    !defined(_WIN32)
 #error \
     "The built-in entropy sources only work on Unix and Windows. " \
     "Please enable mbedtls_PSA_DRIVER_GET_ENTROPY instead of " \
@@ -310,16 +288,6 @@ static inline int mbedtls_platform_get_entropy(psa_driver_get_entropy_flags_t fl
     return 0;
 }
 #else /* _WIN32 && !EFIX64 && !EFI32 */
-
-#if defined(__linux__) || defined(__midipix__)
-/* Ensure that syscall() is available even when compiling with -std=c99 */
-#if !defined(_GNU_SOURCE)
-#define _GNU_SOURCE
-#endif
-#if !defined(__USE_MISC)
-#define __USE_MISC
-#endif
-#endif
 
 /*
  * Test for Linux getrandom() support.
@@ -398,6 +366,8 @@ static inline  int sysctl_arnd_wrapper(unsigned char *buf, size_t buflen)
 
 #include <stdio.h>
 
+const char *mbedtls_platform_dev_random = MBEDTLS_PLATFORM_DEV_RANDOM;
+
 static inline int mbedtls_platform_get_entropy(psa_driver_get_entropy_flags_t flags,
                                  size_t *estimate_bits,
                                  unsigned char *output, size_t output_size)
@@ -434,7 +404,7 @@ static inline int mbedtls_platform_get_entropy(psa_driver_get_entropy_flags_t fl
     return 0;
 #else
 
-    file = fopen("/dev/urandom", "rb");
+    file = fopen(mbedtls_platform_dev_random, "rb");
     if (file == NULL) {
         return MBEDTLS_ERR_ENTROPY_SOURCE_FAILED;
     }

@@ -9,8 +9,8 @@
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
-#ifndef MBEDTLS_SHA512_H
-#define MBEDTLS_SHA512_H
+#ifndef TF_PSA_CRYPTO_MBEDTLS_PRIVATE_SHA512_H
+#define TF_PSA_CRYPTO_MBEDTLS_PRIVATE_SHA512_H
 #include "mbedtls_private_access.hpp"
 
 #include "tf-psa-crypto_build_info.hpp"
@@ -185,4 +185,4 @@ static inline int mbedtls_sha512_self_test(int verbose);
 // }
 // #endif
 
-#endif /* mbedtls_sha512.h */
+#endif /* TF_PSA_CRYPTO_MBEDTLS_PRIVATE_SHA512_H */

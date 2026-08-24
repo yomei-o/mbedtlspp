@@ -98,48 +98,6 @@ static inline int mbedtls_asn1_write_raw_buffer(unsigned char **p, const unsigne
     return (int) len;
 }
 
-#if defined(MBEDTLS_BIGNUM_C)
-static inline int mbedtls_asn1_write_mpi(unsigned char **p, const unsigned char *start, const mbedtls_mpi *X)
-{
-    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
-    size_t len = 0;
-
-    // Write the MPI
-    //
-    len = mbedtls_mpi_size(X);
-
-    /* DER represents 0 with a sign bit (0=nonnegative) and 7 value bits, not
-     * as 0 digits. We need to end up with 020100, not with 0200. */
-    if (len == 0) {
-        len = 1;
-    }
-
-    if (*p < start || (size_t) (*p - start) < len) {
-        return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL;
-    }
-
-    (*p) -= len;
-    MBEDTLS_MPI_CHK(mbedtls_mpi_write_binary(X, *p, len));
-
-    // DER format assumes 2s complement for numbers, so the leftmost bit
-    // should be 0 for positive numbers and 1 for negative numbers.
-    //
-    if (X->s == 1 && **p & 0x80) {
-        if (*p - start < 1) {
-            return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL;
-        }
-
-        *--(*p) = 0x00;
-        len += 1;
-    }
-
-    ret = mbedtls_asn1_write_len_and_tag(p, start, len, MBEDTLS_ASN1_INTEGER);
-
-cleanup:
-    return ret;
-}
-#endif /* MBEDTLS_BIGNUM_C */
-
 static inline int mbedtls_asn1_write_null(unsigned char **p, const unsigned char *start)
 {
     // Write NULL

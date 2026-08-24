@@ -11,15 +11,12 @@
 #define MBEDTLS_SSL_CIPHERSUITES_INTERNAL_H
 
 #include "mbedtls_pk.hpp"
-#if defined(MBEDTLS_PK_HAVE_PRIVATE_HEADER)
-#include <mbedtls_private_pk_private.hpp>
-#endif /* MBEDTLS_PK_HAVE_PRIVATE_HEADER */
 
 #if defined(MBEDTLS_PK_C)
-static inline mbedtls_pk_type_t mbedtls_ssl_get_ciphersuite_sig_pk_alg(const mbedtls_ssl_ciphersuite_t *info);
+static inline mbedtls_pk_sigalg_t mbedtls_ssl_get_ciphersuite_sig_pk_alg(const mbedtls_ssl_ciphersuite_t *info);
 static inline psa_algorithm_t mbedtls_ssl_get_ciphersuite_sig_pk_psa_alg(const mbedtls_ssl_ciphersuite_t *info);
 static inline psa_key_usage_t mbedtls_ssl_get_ciphersuite_sig_pk_psa_usage(const mbedtls_ssl_ciphersuite_t *info);
-static inline mbedtls_pk_type_t mbedtls_ssl_get_ciphersuite_sig_alg(const mbedtls_ssl_ciphersuite_t *info);
+static inline mbedtls_pk_sigalg_t mbedtls_ssl_get_ciphersuite_sig_alg(const mbedtls_ssl_ciphersuite_t *info);
 #endif /* MBEDTLS_PK_C */
 
 static inline int mbedtls_ssl_ciphersuite_uses_ec(const mbedtls_ssl_ciphersuite_t *info);

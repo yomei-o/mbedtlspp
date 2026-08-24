@@ -76,4 +76,4 @@ static inline int mbedtls_platform_set_time(mbedtls_time_t (*time_func)(mbedtls_
 // }
 // #endif
 
-#endif /* platform_time.h */
+#endif /* MBEDTLS_PLATFORM_TIME_H */

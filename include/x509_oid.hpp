@@ -13,9 +13,6 @@
 
 #include "mbedtls_asn1.hpp"
 #include "mbedtls_pk.hpp"
-#if defined(MBEDTLS_PK_HAVE_PRIVATE_HEADER)
-#include <mbedtls_private_pk_private.hpp>
-#endif /* MBEDTLS_PK_HAVE_PRIVATE_HEADER */
 #include "mbedtls_x509.hpp"
 
 #include <stddef.h>

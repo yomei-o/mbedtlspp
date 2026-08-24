@@ -443,7 +443,7 @@ static inline  int pk_parse_key_rfc8410_der(mbedtls_pk_context *pk,
     /* mbedtls_pk_parse_key_pkcs8_unencrypted_der() only supports version 1
      * PKCS8 keys, which never contain a public key. As such, derive the public
      * key unconditionally. */
-    if ((ret = mbedtls_pk_ecc_set_pubkey_from_prv(pk, key, len)) != 0) {
+    if ((ret = mbedtls_pk_set_pubkey_from_prv(pk)) != 0) {
         return ret;
     }
 
@@ -701,7 +701,7 @@ static inline  int pk_parse_key_sec1_der(mbedtls_pk_context *pk,
     }
 
     if (!pubkey_done) {
-        if ((ret = mbedtls_pk_ecc_set_pubkey_from_prv(pk, d, d_len)) != 0) {
+        if ((ret = mbedtls_pk_set_pubkey_from_prv(pk)) != 0) {
             return ret;
         }
     }
@@ -961,7 +961,8 @@ static inline int mbedtls_pk_parse_key(mbedtls_pk_context *pk,
     if (ret == 0) {
         pk_info = mbedtls_pk_info_from_type(MBEDTLS_PK_RSA);
         if ((ret = mbedtls_pk_setup(pk, pk_info)) != 0 ||
-            (ret = mbedtls_pk_rsa_set_key(pk, pem.buf, pem.buflen)) != 0) {
+            (ret = mbedtls_pk_rsa_set_key(pk, pem.buf, pem.buflen)) != 0 ||
+            (ret = mbedtls_pk_set_pubkey_from_prv(pk)) != 0) {
             mbedtls_pk_free(pk);
         }
 
@@ -1101,7 +1102,8 @@ static inline int mbedtls_pk_parse_key(mbedtls_pk_context *pk,
 
     pk_info = mbedtls_pk_info_from_type(MBEDTLS_PK_RSA);
     if (mbedtls_pk_setup(pk, pk_info) == 0 &&
-        mbedtls_pk_rsa_set_key(pk, key, keylen) == 0) {
+        (mbedtls_pk_rsa_set_key(pk, key, keylen) == 0) &&
+        (mbedtls_pk_set_pubkey_from_prv(pk) == 0)) {
         return 0;
     }
 

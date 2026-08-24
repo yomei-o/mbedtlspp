@@ -5,12 +5,6 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-/*
- * This file is private and for internal
- * use only.
- */
-#define MBEDTLS_DECLARE_PRIVATE_IDENTIFIERS
-
 #include "tf_psa_crypto_common.hpp"
 
 #if defined(MBEDTLS_PK_C)
@@ -25,20 +19,16 @@
 #include "mbedtls_platform_util.hpp"
 #include "mbedtls_private_error_common.hpp"
 
-#if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
-#include "mbedtls_private_ecp.hpp"
-#endif
-#if defined(MBEDTLS_ECDSA_C)
-#include "mbedtls_private_ecdsa.hpp"
-#endif
-
-#if defined(MBEDTLS_PSA_CRYPTO_CLIENT)
 #include "psa_util_internal.hpp"
 #include "mbedtls_psa_util.hpp"
-#endif
 
 #include <limits.h>
 #include <stdint.h>
+
+#if !defined(PK_EXPORT_KEYS_ON_THE_STACK)
+#include "mbedtls_platform.hpp" // for calloc/free
+#endif
+
 
 /*
  * Initialise a mbedtls_pk_context
@@ -50,20 +40,14 @@ static inline void mbedtls_pk_init(mbedtls_pk_context *ctx)
      * we need to add a call to this as the end of mbedtls_pk_free()!
      */
     ctx->pk_info = NULL;
-    ctx->pk_ctx = NULL;
     ctx->priv_id = MBEDTLS_SVC_KEY_ID_INIT;
-#if defined(PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY) || defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
+    ctx->psa_type = PSA_KEY_TYPE_NONE;
     memset(ctx->pub_raw, 0, sizeof(ctx->pub_raw));
     ctx->pub_raw_len = 0;
     ctx->bits = 0;
-#endif /* PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY || PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY */
 #if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
     ctx->ec_family = 0;
 #endif /* PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY */
-#if defined(PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY)
-    ctx->rsa_padding = MBEDTLS_PK_RSA_PKCS_V15;
-    ctx->rsa_hash_alg = PSA_ALG_ANY_HASH;
-#endif /* PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY */
 }
 
 /*
@@ -73,10 +57,6 @@ static inline void mbedtls_pk_free(mbedtls_pk_context *ctx)
 {
     if (ctx == NULL) {
         return;
-    }
-
-    if ((ctx->pk_info != NULL) && (ctx->pk_info->ctx_free_func != NULL)) {
-        ctx->pk_info->ctx_free_func(ctx->pk_ctx);
     }
 
     /* The ownership of the priv_id key for opaque keys is external of the PK
@@ -150,14 +130,26 @@ static inline int mbedtls_pk_setup(mbedtls_pk_context *ctx, const mbedtls_pk_inf
         return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
     }
 
-    if ((info->ctx_alloc_func != NULL) &&
-        ((ctx->pk_ctx = info->ctx_alloc_func()) == NULL)) {
-        return MBEDTLS_ERR_PK_ALLOC_FAILED;
-    }
-
     ctx->pk_info = info;
 
     return 0;
+}
+
+/*
+ * Set the public key in PK context by exporting it from the private one.
+ */
+static inline int mbedtls_pk_set_pubkey_from_prv(mbedtls_pk_context *pk)
+{
+    psa_status_t status;
+
+    /* Public key already available in the PK context. Nothing to do. */
+    if (pk->pub_raw_len > 0) {
+        return 0;
+    }
+
+    status = psa_export_public_key(pk->priv_id, pk->pub_raw, sizeof(pk->pub_raw),
+                                   &pk->pub_raw_len);
+    return psa_pk_status_to_mbedtls(status);
 }
 
 /*
@@ -169,6 +161,8 @@ static inline int mbedtls_pk_wrap_psa(mbedtls_pk_context *ctx,
     const mbedtls_pk_info_t *info = NULL;
     psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
     psa_key_type_t type;
+    size_t bits;
+    int ret;
 
     if (ctx == NULL || ctx->pk_info != NULL) {
         return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
@@ -178,6 +172,7 @@ static inline int mbedtls_pk_wrap_psa(mbedtls_pk_context *ctx,
         return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
     }
     type = psa_get_key_type(&attributes);
+    bits = psa_get_key_bits(&attributes);
     psa_reset_key_attributes(&attributes);
 
 #if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
@@ -191,8 +186,17 @@ static inline int mbedtls_pk_wrap_psa(mbedtls_pk_context *ctx,
         return MBEDTLS_ERR_PK_FEATURE_UNAVAILABLE;
     }
 
-    ctx->pk_info = info;
     ctx->priv_id = key;
+
+    ret = mbedtls_pk_set_pubkey_from_prv(ctx);
+    if (ret != 0) {
+        ctx->priv_id = MBEDTLS_SVC_KEY_ID_INIT;
+        return ret;
+    }
+
+    ctx->pk_info = info;
+    ctx->psa_type = type;
+    ctx->bits = bits;
 
     return 0;
 }
@@ -538,7 +542,6 @@ static inline int mbedtls_pk_can_do_psa(const mbedtls_pk_context *pk, psa_algori
     return 0;
 }
 
-#if defined(MBEDTLS_PSA_CRYPTO_CLIENT)
 static inline int mbedtls_pk_get_psa_attributes(const mbedtls_pk_context *pk,
                                   psa_key_usage_t usage,
                                   psa_key_attributes_t *attributes)
@@ -704,20 +707,50 @@ static inline int mbedtls_pk_get_psa_attributes(const mbedtls_pk_context *pk,
     return 0;
 }
 
+static inline psa_key_type_t mbedtls_pk_get_key_type(const mbedtls_pk_context *pk)
+{
+    return pk->psa_type;
+}
+
 static inline  psa_status_t export_import_into_psa(mbedtls_svc_key_id_t old_key_id,
+                                           psa_key_type_t old_type, size_t old_bits,
                                            const psa_key_attributes_t *attributes,
                                            mbedtls_svc_key_id_t *new_key_id)
 {
-    unsigned char key_buffer[PSA_EXPORT_KEY_PAIR_MAX_SIZE];
+#if !defined(PK_EXPORT_KEYS_ON_THE_STACK)
+    unsigned char *key_buffer = NULL;
+    size_t key_buffer_size = 0;
+#else
+    unsigned char key_buffer[PK_EXPORT_KEY_STACK_BUFFER_SIZE];
+    const size_t key_buffer_size = sizeof(key_buffer);
+#endif
     size_t key_length = 0;
+
+    /* We are exporting from a PK object, so we know key type is valid for PK */
+#if !defined(PK_EXPORT_KEYS_ON_THE_STACK)
+    key_buffer_size = PSA_EXPORT_KEY_OUTPUT_SIZE(old_type, old_bits);
+    key_buffer = (unsigned char *) mbedtls_calloc(1, key_buffer_size);
+    if (key_buffer == NULL) {
+        return MBEDTLS_ERR_PK_ALLOC_FAILED;
+    }
+#else
+    (void) old_type;
+    (void) old_bits;
+#endif
+
     psa_status_t status = psa_export_key(old_key_id,
-                                         key_buffer, sizeof(key_buffer),
+                                         key_buffer, key_buffer_size,
                                          &key_length);
     if (status != PSA_SUCCESS) {
-        return status;
+        goto cleanup;
     }
     status = psa_import_key(attributes, key_buffer, key_length, new_key_id);
     mbedtls_platform_zeroize(key_buffer, key_length);
+
+cleanup:
+#if !defined(PK_EXPORT_KEYS_ON_THE_STACK)
+    mbedtls_free(key_buffer);
+#endif
     return status;
 }
 
@@ -747,11 +780,13 @@ static inline  int copy_into_psa(mbedtls_svc_key_id_t old_key_id,
             return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
         }
         psa_key_type_t old_type = psa_get_key_type(&old_attributes);
+        size_t old_bits = psa_get_key_bits(&old_attributes);
         psa_reset_key_attributes(&old_attributes);
         if (old_type != psa_get_key_type(attributes)) {
             return MBEDTLS_ERR_PK_TYPE_MISMATCH;
         }
-        status = export_import_into_psa(old_key_id, attributes, new_key_id);
+        status = export_import_into_psa(old_key_id, old_type, old_bits,
+                                        attributes, new_key_id);
     }
     return PSA_PK_TO_MBEDTLS_ERR(status);
 }
@@ -812,7 +847,7 @@ static inline  int import_public_into_psa(const mbedtls_pk_context *pk,
                                   mbedtls_svc_key_id_t *key_id)
 {
     psa_key_type_t psa_type = psa_get_key_type(attributes);
-    unsigned char key_buffer[PSA_EXPORT_PUBLIC_KEY_MAX_SIZE];
+    unsigned char key_buffer[MBEDTLS_PK_MAX_PUBKEY_RAW_LEN];
     unsigned char *key_data = NULL;
     size_t key_length = 0;
 
@@ -896,6 +931,31 @@ static inline int mbedtls_pk_import_into_psa(const mbedtls_pk_context *pk,
     }
 }
 
+static inline  int is_valid_for_pk(psa_key_type_t key_type)
+{
+#if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
+    if (PSA_KEY_TYPE_IS_ECC_PUBLIC_KEY(key_type)) {
+        return 1;
+    }
+#endif
+#if defined(PSA_WANT_KEY_TYPE_ECC_KEY_PAIR_BASIC)
+    if (PSA_KEY_TYPE_IS_ECC_KEY_PAIR(key_type)) {
+        return 1;
+    }
+#endif
+#if defined(PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY)
+    if (key_type == PSA_KEY_TYPE_RSA_PUBLIC_KEY) {
+        return 1;
+    }
+#endif
+#if defined(PSA_WANT_KEY_TYPE_RSA_KEY_PAIR_BASIC)
+    if (key_type == PSA_KEY_TYPE_RSA_KEY_PAIR) {
+        return 1;
+    }
+#endif
+    return 0;
+}
+
 static inline  int copy_from_psa(mbedtls_svc_key_id_t key_id,
                          mbedtls_pk_context *pk,
                          int public_only)
@@ -904,8 +964,13 @@ static inline  int copy_from_psa(mbedtls_svc_key_id_t key_id,
     psa_key_attributes_t key_attr = PSA_KEY_ATTRIBUTES_INIT;
     psa_key_type_t key_type;
     size_t key_bits;
-    /* Use a buffer size large enough to contain either a key pair or public key. */
-    unsigned char exp_key[PSA_EXPORT_KEY_PAIR_OR_PUBLIC_MAX_SIZE];
+#if !defined(PK_EXPORT_KEYS_ON_THE_STACK)
+    unsigned char *exp_key = NULL;
+    size_t exp_key_size = 0;
+#else
+    unsigned char exp_key[PK_EXPORT_KEY_STACK_BUFFER_SIZE];
+    const size_t exp_key_size = sizeof(exp_key);
+#endif
     size_t exp_key_len;
     int ret = MBEDTLS_ERR_PK_BAD_INPUT_DATA;
 
@@ -918,21 +983,35 @@ static inline  int copy_from_psa(mbedtls_svc_key_id_t key_id,
         return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
     }
 
+    key_type = psa_get_key_type(&key_attr);
+    if (!is_valid_for_pk(key_type)) {
+        return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
+    }
+
     if (public_only) {
-        status = psa_export_public_key(key_id, exp_key, sizeof(exp_key), &exp_key_len);
+        key_type = PSA_KEY_TYPE_PUBLIC_KEY_OF_KEY_PAIR(key_type);
+    }
+    key_bits = psa_get_key_bits(&key_attr);
+
+#if !defined(PK_EXPORT_KEYS_ON_THE_STACK)
+    exp_key_size = PSA_EXPORT_KEY_OUTPUT_SIZE(key_type, key_bits);
+    exp_key = (unsigned char *) mbedtls_calloc(1, exp_key_size);
+    if (exp_key == NULL) {
+        return MBEDTLS_ERR_PK_ALLOC_FAILED;
+    }
+#endif
+
+    if (public_only) {
+        status = psa_export_public_key(key_id, exp_key, exp_key_size, &exp_key_len);
     } else {
-        status = psa_export_key(key_id, exp_key, sizeof(exp_key), &exp_key_len);
+        status = psa_export_key(key_id, exp_key, exp_key_size, &exp_key_len);
     }
     if (status != PSA_SUCCESS) {
         ret = PSA_PK_TO_MBEDTLS_ERR(status);
         goto exit;
     }
 
-    key_type = psa_get_key_type(&key_attr);
-    if (public_only) {
-        key_type = PSA_KEY_TYPE_PUBLIC_KEY_OF_KEY_PAIR(key_type);
-    }
-    key_bits = psa_get_key_bits(&key_attr);
+    pk->psa_type = key_type;
 
 #if defined(PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY)
     if ((key_type == PSA_KEY_TYPE_RSA_KEY_PAIR) ||
@@ -948,7 +1027,7 @@ static inline  int copy_from_psa(mbedtls_svc_key_id_t key_id,
             if (ret != 0) {
                 goto exit;
             }
-            ret = mbedtls_pk_rsa_set_pubkey_from_prv(pk);
+            ret = mbedtls_pk_set_pubkey_from_prv(pk);
         } else {
             ret = mbedtls_pk_rsa_set_pubkey(pk, exp_key, exp_key_len);
         }
@@ -978,7 +1057,7 @@ static inline  int copy_from_psa(mbedtls_svc_key_id_t key_id,
             if (ret != 0) {
                 goto exit;
             }
-            ret = mbedtls_pk_ecc_set_pubkey_from_prv(pk, exp_key, exp_key_len);
+            ret = mbedtls_pk_set_pubkey_from_prv(pk);
         } else {
             ret = mbedtls_pk_ecc_set_pubkey(pk, exp_key, exp_key_len);
         }
@@ -989,12 +1068,16 @@ static inline  int copy_from_psa(mbedtls_svc_key_id_t key_id,
 #endif /* PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY */
     {
         (void) key_bits;
-        return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
+        ret = MBEDTLS_ERR_PK_BAD_INPUT_DATA;
+        goto exit;
     }
 
 exit:
+    mbedtls_platform_zeroize(exp_key, exp_key_size);
+#if !defined(PK_EXPORT_KEYS_ON_THE_STACK)
+    mbedtls_free(exp_key);
+#endif
     psa_reset_key_attributes(&key_attr);
-    mbedtls_platform_zeroize(exp_key, sizeof(exp_key));
 
     return ret;
 }
@@ -1010,7 +1093,6 @@ static inline int mbedtls_pk_copy_public_from_psa(mbedtls_svc_key_id_t key_id,
 {
     return copy_from_psa(key_id, pk, 1);
 }
-#endif /* MBEDTLS_PSA_CRYPTO_CLIENT */
 
 /*
  * Helper for mbedtls_pk_sign and mbedtls_pk_verify
@@ -1145,8 +1227,7 @@ static inline int mbedtls_pk_verify_ext(mbedtls_pk_sigalg_t type,
         return mbedtls_pk_verify(ctx, md_alg, hash, hash_len, sig, sig_len);
     }
 
-    /* Ensure the PK context is of the right type otherwise mbedtls_pk_rsa()
-     * below would return a NULL pointer. */
+    /* Ensure the PK context is of the right type. */
     if (mbedtls_pk_get_type(ctx) != MBEDTLS_PK_RSA) {
         return MBEDTLS_ERR_PK_FEATURE_UNAVAILABLE;
     }
@@ -1203,22 +1284,6 @@ static inline int mbedtls_pk_verify_ext(mbedtls_pk_sigalg_t type,
 #else
     return MBEDTLS_ERR_PK_FEATURE_UNAVAILABLE;
 #endif /* PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY */
-}
-
-/*
- * Verify a signature
- */
-static inline int mbedtls_pk_verify_new(mbedtls_pk_type_t type, mbedtls_pk_context *ctx,
-                          mbedtls_md_type_t md_alg, const unsigned char *hash,
-                          size_t hash_len, const unsigned char *sig, size_t sig_len)
-{
-    return mbedtls_pk_verify_ext((mbedtls_pk_sigalg_t) type,
-                                 ctx,
-                                 md_alg,
-                                 hash,
-                                 hash_len,
-                                 sig,
-                                 sig_len);
 }
 
 /*
@@ -1346,22 +1411,29 @@ static inline int mbedtls_pk_sign_ext(mbedtls_pk_sigalg_t pk_type,
 static inline int mbedtls_pk_check_pair(const mbedtls_pk_context *pub,
                           const mbedtls_pk_context *prv)
 {
+    /* Check for a valid context */
     if (pub->pk_info == NULL ||
-        prv->pk_info == NULL) {
-        return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
+        prv->pk_info == NULL ||
+        pub->pub_raw_len == 0 ||
+        prv->pub_raw_len == 0) {
+        return PSA_ERROR_INVALID_ARGUMENT;
     }
 
-    if (prv->pk_info->check_pair_func == NULL) {
-        return MBEDTLS_ERR_PK_FEATURE_UNAVAILABLE;
-    }
-
-    if ((prv->pk_info->type != MBEDTLS_PK_OPAQUE) &&
-        (pub->pk_info != prv->pk_info)) {
+    /* Check types */
+    if (!PSA_KEY_TYPE_IS_KEY_PAIR(prv->psa_type) ||
+        pub->psa_type != PSA_KEY_TYPE_PUBLIC_KEY_OF_KEY_PAIR(prv->psa_type)) {
         return MBEDTLS_ERR_PK_TYPE_MISMATCH;
     }
 
-    return prv->pk_info->check_pair_func((mbedtls_pk_context *) pub,
-                                         (mbedtls_pk_context *) prv);
+    /* Check input data */
+    if ((mbedtls_pk_get_bitlen(pub) != mbedtls_pk_get_bitlen(prv)) ||
+        prv->pub_raw_len != pub->pub_raw_len ||
+        memcmp(prv->pub_raw, pub->pub_raw, prv->pub_raw_len) != 0) {
+        return MBEDTLS_ERR_PK_TYPE_MISMATCH;
+    }
+
+    /* return 0 on match */
+    return 0;
 }
 
 /*
@@ -1374,37 +1446,7 @@ static inline size_t mbedtls_pk_get_bitlen(const mbedtls_pk_context *ctx)
     if (ctx == NULL || ctx->pk_info == NULL) {
         return 0;
     }
-
-    return ctx->pk_info->get_bitlen((mbedtls_pk_context *) ctx);
-}
-
-/*
- * Export debug information
- */
-static inline int mbedtls_pk_debug(const mbedtls_pk_context *ctx, mbedtls_pk_debug_item *items)
-{
-    if (ctx->pk_info == NULL) {
-        return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
-    }
-
-    if (ctx->pk_info->debug_func == NULL) {
-        return MBEDTLS_ERR_PK_TYPE_MISMATCH;
-    }
-
-    ctx->pk_info->debug_func((mbedtls_pk_context *) ctx, items);
-    return 0;
-}
-
-/*
- * Access the PK type name
- */
-static inline const char *mbedtls_pk_get_name(const mbedtls_pk_context *ctx)
-{
-    if (ctx == NULL || ctx->pk_info == NULL) {
-        return "invalid PK";
-    }
-
-    return ctx->pk_info->name;
+    return ctx->bits;
 }
 
 /*

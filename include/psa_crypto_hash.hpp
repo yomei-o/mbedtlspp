@@ -6,8 +6,8 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#ifndef PSA_CRYPTO_HASH_H
-#define PSA_CRYPTO_HASH_H
+#ifndef TF_PSA_CRYPTO_PSA_CRYPTO_HASH_H
+#define TF_PSA_CRYPTO_PSA_CRYPTO_HASH_H
 
 #include <psa_crypto.hpp>
 
@@ -208,4 +208,4 @@ static inline psa_status_t mbedtls_psa_hash_finish(
 static inline psa_status_t mbedtls_psa_hash_abort(
     mbedtls_psa_hash_operation_t *operation);
 
-#endif /* PSA_CRYPTO_HASH_H */
+#endif /* TF_PSA_CRYPTO_PSA_CRYPTO_HASH_H */

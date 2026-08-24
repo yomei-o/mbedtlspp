@@ -8,8 +8,8 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#ifndef MBEDTLS_PK_WRAP_H
-#define MBEDTLS_PK_WRAP_H
+#ifndef TF_PSA_CRYPTO_PK_WRAP_H
+#define TF_PSA_CRYPTO_PK_WRAP_H
 
 #include "tf-psa-crypto_build_info.hpp"
 
@@ -38,9 +38,6 @@ struct mbedtls_pk_info_t {
     /** Type name */
     const char *name;
 
-    /** Get key size in bits */
-    size_t (*get_bitlen)(mbedtls_pk_context *pk);
-
     /** Tell if the context implements this type (e.g. ECKEY can do ECDSA) */
     int (*can_do)(mbedtls_pk_type_t type);
 
@@ -68,15 +65,6 @@ struct mbedtls_pk_info_t {
                         void *rs_ctx);
 #endif /* MBEDTLS_ECP_RESTARTABLE */
 
-    /** Check public-private key pair */
-    int (*check_pair_func)(mbedtls_pk_context *pub, mbedtls_pk_context *prv);
-
-    /** Allocate a new context */
-    void * (*ctx_alloc_func)(void);
-
-    /** Free the given context */
-    void (*ctx_free_func)(void *ctx);
-
 #if defined(MBEDTLS_ECP_RESTARTABLE)
     /** Allocate the restart context */
     void *(*rs_alloc_func)(mbedtls_pk_rs_op_t op_type);
@@ -84,9 +72,6 @@ struct mbedtls_pk_info_t {
     /** Free the restart context */
     void (*rs_free_func)(void *rs_ctx);
 #endif /* MBEDTLS_ECP_RESTARTABLE */
-
-    /** Interface with the debug module */
-    void (*debug_func)(mbedtls_pk_context *pk, mbedtls_pk_debug_item *items);
 
 };
 #if defined(PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY)
@@ -113,4 +98,4 @@ static inline int mbedtls_pk_psa_rsa_sign_ext(psa_algorithm_t psa_alg_md,
                                 size_t *sig_len);
 #endif /* PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY */
 
-#endif /* MBEDTLS_PK_WRAP_H */
+#endif /* TF_PSA_CRYPTO_PK_WRAP_H */

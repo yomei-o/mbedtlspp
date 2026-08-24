@@ -14,7 +14,6 @@
 #include "mbedtls_build_info.hpp"
 
 #include "mbedtls_pk.hpp"
-#include "mbedtls_private_cipher.hpp"
 #include "mbedtls_md.hpp"
 
 // #ifdef __cplusplus

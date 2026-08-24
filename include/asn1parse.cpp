@@ -159,26 +159,6 @@ static inline int mbedtls_asn1_get_enum(unsigned char **p,
     return asn1_get_tagged_int(p, end, MBEDTLS_ASN1_ENUMERATED, val);
 }
 
-#if defined(MBEDTLS_BIGNUM_C)
-static inline int mbedtls_asn1_get_mpi(unsigned char **p,
-                         const unsigned char *end,
-                         mbedtls_mpi *X)
-{
-    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
-    size_t len;
-
-    if ((ret = mbedtls_asn1_get_tag(p, end, &len, MBEDTLS_ASN1_INTEGER)) != 0) {
-        return ret;
-    }
-
-    ret = mbedtls_mpi_read_binary(X, *p, len);
-
-    *p += len;
-
-    return ret;
-}
-#endif /* MBEDTLS_BIGNUM_C */
-
 static inline int mbedtls_asn1_get_integer(unsigned char **p, const unsigned char *end,
                              unsigned char **head, size_t *length)
 {

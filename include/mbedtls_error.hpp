@@ -11,7 +11,9 @@
 #define MBEDTLS_ERROR_H
 
 #include "mbedtls_build_info.hpp"
-#include "mbedtls_private_error_common.hpp"
+#include "mbedtls_private_error_common.hpp" // for MBEDTLS_ERROR_ADD + see below
+// MBEDTLS_ERR_PLATFORM_HW_ACCEL_FAILED
+// MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED
 
 #include <stddef.h>
 

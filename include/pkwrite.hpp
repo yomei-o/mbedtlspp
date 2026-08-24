@@ -8,8 +8,8 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#ifndef MBEDTLS_PK_WRITE_H
-#define MBEDTLS_PK_WRITE_H
+#ifndef TF_PSA_CRYPTO_PKWRITE_H
+#define TF_PSA_CRYPTO_PKWRITE_H
 
 #include "tf-psa-crypto_build_info.hpp"
 
@@ -32,32 +32,14 @@
  *       algorithm            AlgorithmIdentifier,  1 + 1 (sequence)
  *                                                + 1 + 1 + 9 (rsa oid)
  *                                                + 1 + 1 (params null)
- *       subjectPublicKey     BIT STRING }          1 + 3 + (1 + below)
- *  RSAPublicKey ::= SEQUENCE {                     1 + 3
- *      modulus           INTEGER,  -- n            1 + 3 + MPI_MAX + 1
- *      publicExponent    INTEGER   -- e            1 + 3 + MPI_MAX + 1
+ *       subjectPublicKey     BIT STRING            1 + 3 + [PSA format]
  *  }
- *
- * SubjectPublicKeyInfo => 23 bytes (max)
- * RSAPublicKey => PSA_KEY_EXPORT_RSA_PUBLIC_KEY_MAX_SIZE(PSA_VENDOR_RSA_MAX_KEY_BITS)
  */
 #define MBEDTLS_PK_RSA_PUB_DER_MAX_BYTES    \
     23 + PSA_KEY_EXPORT_RSA_PUBLIC_KEY_MAX_SIZE(PSA_VENDOR_RSA_MAX_KEY_BITS)
 
 /*
- * RSA private keys:
- *  RSAPrivateKey ::= SEQUENCE {                    1 + 3
- *      version           Version,                  1 + 1 + 1
- *      modulus           INTEGER,                  1 + 3 + MPI_MAX + 1
- *      publicExponent    INTEGER,                  1 + 3 + MPI_MAX + 1
- *      privateExponent   INTEGER,                  1 + 3 + MPI_MAX + 1
- *      prime1            INTEGER,                  1 + 3 + MPI_MAX / 2 + 1
- *      prime2            INTEGER,                  1 + 3 + MPI_MAX / 2 + 1
- *      exponent1         INTEGER,                  1 + 3 + MPI_MAX / 2 + 1
- *      exponent2         INTEGER,                  1 + 3 + MPI_MAX / 2 + 1
- *      coefficient       INTEGER,                  1 + 3 + MPI_MAX / 2 + 1
- *      otherPrimeInfos   OtherPrimeInfos OPTIONAL  0 (not supported)
- *  }
+ * RSA private keys: PSA export format
  */
 #define MBEDTLS_PK_RSA_PRV_DER_MAX_BYTES    \
     PSA_KEY_EXPORT_RSA_KEY_PAIR_MAX_SIZE(PSA_VENDOR_RSA_MAX_KEY_BITS)
@@ -71,37 +53,35 @@
 
 #if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
 
-/* Find the maximum number of bytes necessary to store an EC point. When USE_PSA
- * is defined this means looking for the maximum between PSA and built-in
- * supported curves. */
-#define MBEDTLS_PK_MAX_ECC_BYTES   (PSA_BITS_TO_BYTES(PSA_VENDOR_ECC_MAX_CURVE_BITS) > \
-                                    MBEDTLS_ECP_MAX_BYTES ? \
-                                    PSA_BITS_TO_BYTES(PSA_VENDOR_ECC_MAX_CURVE_BITS) : \
-                                    MBEDTLS_ECP_MAX_BYTES)
-
 /*
  * EC public keys:
  *  SubjectPublicKeyInfo  ::=  SEQUENCE  {      1 + 2
  *    algorithm         AlgorithmIdentifier,    1 + 1 (sequence)
  *                                            + 1 + 1 + 7 (ec oid)
  *                                            + 1 + 1 + 9 (namedCurve oid)
- *    subjectPublicKey  BIT STRING              1 + 2 + 1               [1]
- *                                            + 1 (point format)        [1]
- *                                            + 2 * ECP_MAX (coords)    [1]
+ *    subjectPublicKey  BIT STRING              1 + 2 + 1               [*]
+ *                                            + [PSA export format]     [*]
  *  }
  */
-#define MBEDTLS_PK_ECP_PUB_DER_MAX_BYTES    (30 + 2 * MBEDTLS_PK_MAX_ECC_BYTES)
+#define MBEDTLS_PK_ECP_PUB_DER_MAX_BYTES    (29 + \
+                                             PSA_KEY_EXPORT_ECC_PUBLIC_KEY_MAX_SIZE( \
+                                                 PSA_VENDOR_ECC_MAX_CURVE_BITS))
 
 /*
  * EC private keys:
  * ECPrivateKey ::= SEQUENCE {                  1 + 2
  *      version        INTEGER ,                1 + 1 + 1
- *      privateKey     OCTET STRING,            1 + 1 + ECP_MAX
+ *      privateKey     OCTET STRING,            1 + 1 + [PSA export format]
  *      parameters [0] ECParameters OPTIONAL,   1 + 1 + (1 + 1 + 9)
- *      publicKey  [1] BIT STRING OPTIONAL      1 + 2 + [1] above
+ *      publicKey  [1] BIT STRING OPTIONAL      1 + 2 + [*] above
  *    }
  */
-#define MBEDTLS_PK_ECP_PRV_DER_MAX_BYTES    (29 + 3 * MBEDTLS_PK_MAX_ECC_BYTES)
+#define MBEDTLS_PK_ECP_PRV_DER_MAX_BYTES    (8 + \
+                                             PSA_KEY_EXPORT_ECC_KEY_PAIR_MAX_SIZE( \
+                                                 PSA_VENDOR_ECC_MAX_CURVE_BITS) + \
+                                             16 + 4 + \
+                                             PSA_KEY_EXPORT_ECC_PUBLIC_KEY_MAX_SIZE( \
+                                                 PSA_VENDOR_ECC_MAX_CURVE_BITS))
 
 #else /* PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY */
 
@@ -118,4 +98,4 @@
 #define MBEDTLS_PK_WRITE_PUBKEY_MAX_SIZE    MBEDTLS_PK_ECP_PUB_DER_MAX_BYTES
 #endif
 
-#endif /* MBEDTLS_PK_WRITE_H */
+#endif /* TF_PSA_CRYPTO_PKWRITE_H */

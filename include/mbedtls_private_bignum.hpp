@@ -7,8 +7,8 @@
  *  Copyright The Mbed TLS Contributors
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
-#ifndef MBEDTLS_BIGNUM_H
-#define MBEDTLS_BIGNUM_H
+#ifndef TF_PSA_CRYPTO_MBEDTLS_PRIVATE_BIGNUM_H
+#define TF_PSA_CRYPTO_MBEDTLS_PRIVATE_BIGNUM_H
 #include "mbedtls_private_access.hpp"
 
 #include "tf-psa-crypto_build_info.hpp"
@@ -1132,4 +1132,4 @@ static inline int mbedtls_asn1_write_mpi(unsigned char **p, const unsigned char 
 // }
 // #endif
 
-#endif /* bignum.h */
+#endif /* TF_PSA_CRYPTO_MBEDTLS_PRIVATE_BIGNUM_H */

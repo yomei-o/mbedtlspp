@@ -41,6 +41,7 @@ static inline int mbedtls_pk_ecc_set_key(mbedtls_pk_context *pk, unsigned char *
     psa_key_usage_t flags;
     psa_status_t status;
 
+    pk->psa_type = PSA_KEY_TYPE_ECC_KEY_PAIR(pk->ec_family);
     psa_set_key_type(&attributes, PSA_KEY_TYPE_ECC_KEY_PAIR(pk->ec_family));
     if (pk->ec_family == PSA_ECC_FAMILY_MONTGOMERY) {
         /* Do not set algorithm here because Montgomery keys cannot do ECDSA and
@@ -57,18 +58,6 @@ static inline int mbedtls_pk_ecc_set_key(mbedtls_pk_context *pk, unsigned char *
     psa_set_key_usage_flags(&attributes, flags);
 
     status = psa_import_key(&attributes, key, key_len, &pk->priv_id);
-    return psa_pk_status_to_mbedtls(status);
-}
-
-static inline int mbedtls_pk_ecc_set_pubkey_from_prv(mbedtls_pk_context *pk,
-                                       const unsigned char *prv, size_t prv_len)
-{
-    (void) prv;
-    (void) prv_len;
-    psa_status_t status;
-
-    status = psa_export_public_key(pk->priv_id, pk->pub_raw, sizeof(pk->pub_raw),
-                                   &pk->pub_raw_len);
     return psa_pk_status_to_mbedtls(status);
 }
 
@@ -152,15 +141,26 @@ static inline int mbedtls_pk_ecc_set_pubkey(mbedtls_pk_context *pk, const unsign
     /* Validate the key by trying to import it */
     mbedtls_svc_key_id_t key_id = MBEDTLS_SVC_KEY_ID_INIT;
     psa_key_attributes_t key_attrs = PSA_KEY_ATTRIBUTES_INIT;
+    psa_key_type_t key_type =  PSA_KEY_TYPE_ECC_PUBLIC_KEY(pk->ec_family);
 
     psa_set_key_usage_flags(&key_attrs, 0);
-    psa_set_key_type(&key_attrs, PSA_KEY_TYPE_ECC_PUBLIC_KEY(pk->ec_family));
+    psa_set_key_type(&key_attrs, key_type);
     psa_set_key_bits(&key_attrs, pk->bits);
 
     if ((psa_import_key(&key_attrs, pk->pub_raw, pk->pub_raw_len,
                         &key_id) != PSA_SUCCESS) ||
         (psa_destroy_key(key_id) != PSA_SUCCESS)) {
         return MBEDTLS_ERR_PK_INVALID_PUBKEY;
+    }
+
+    if (pk->psa_type == PSA_KEY_TYPE_NONE) {
+        pk->psa_type = key_type;
+    } else {
+        /* If pk->psa_type is already set, ensure its public counterpart
+         * matches with the public key type we used above when testing the key. */
+        if (PSA_KEY_TYPE_PUBLIC_KEY_OF_KEY_PAIR(pk->psa_type) != key_type) {
+            return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
+        }
     }
 
     return 0;

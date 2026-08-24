@@ -10,17 +10,14 @@
 #ifndef MBEDTLS_X509_INTERNAL_H
 #define MBEDTLS_X509_INTERNAL_H
 
-#include "tf_psa_crypto_common.hpp"
+#include "mbedtls_common.hpp"
 #include "mbedtls_build_info.hpp"
 #include "mbedtls_private_access.hpp"
 
 #include "mbedtls_x509.hpp"
 #include "mbedtls_asn1.hpp"
-#include "pk_internal.hpp"
 
-#if defined(MBEDTLS_RSA_C)
-#include "mbedtls_private_rsa.hpp"
-#endif
+#include "pk_internal.hpp" // for a lot of things, including in SSL
 
 static inline int mbedtls_x509_get_name(unsigned char **p, const unsigned char *end,
                           mbedtls_x509_name *cur);
