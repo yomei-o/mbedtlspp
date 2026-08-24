@@ -39,7 +39,6 @@
 #include "ecjpake.cpp"
 #include "ecp.cpp"
 #include "ecp_curves.cpp"
-#include "ecp_curves_new.cpp"
 #include "entropy.cpp"
 #include "entropy_poll.cpp"
 #include "gcm.cpp"
